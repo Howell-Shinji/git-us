@@ -73,17 +73,24 @@
 .vlg-sc-header {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   border-bottom: 1px solid var(--background-modifier-border);
   padding-bottom: 8px;
   margin-bottom: 10px;
 }
 
 .vlg-panel-title {
-  margin: 0 0 8px;
+  margin: 0 0 6px;
   font-size: 11px;
   letter-spacing: 0.08em;
   color: var(--text-muted);
+}
+
+.vlg-headline-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
 }
 
 .vlg-repo-headline {
@@ -91,12 +98,28 @@
   color: var(--text-muted);
   font-weight: 400;
   padding: 0 2px;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vlg-switch-repo-btn {
+  flex-shrink: 0;
+  font-size: 11px;
+  padding: 2px 7px !important;
+  color: var(--text-muted);
+}
+
+.vlg-switch-repo-btn:hover {
+  color: var(--text-normal);
 }
 
 .vlg-sc-actions {
   display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
+  gap: 4px;
+  flex-wrap: nowrap;
 }
 
 .vlg-sc-actions button {
@@ -134,26 +157,26 @@
   display: flex;
   align-items: center;
   height: 22px;
-  padding: 0 4px;
+  padding: 0 6px;
   justify-content: space-between;
   gap: 4px;
 }
 
 .vlg-change-section-toggle {
   flex: 1;
+  background: none;
   border: none;
-  background: transparent;
   color: var(--text-muted);
   font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.06em;
   padding: 0;
   text-align: left;
   cursor: pointer;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  user-select: none;
 }
 
 .vlg-change-section-toggle:hover {

@@ -540,10 +540,13 @@ var SourceControlView = class extends import_obsidian.ItemView {
       });
       panelTitle.setAttr("aria-label", "Source Control");
       const header = wrap.createDiv({ cls: "vlg-sc-header" });
-      this.headlineEl = header.createEl("div", {
+      const headlineRow = header.createDiv({ cls: "vlg-headline-row" });
+      this.headlineEl = headlineRow.createEl("div", {
         text: `${snapshot.repoName} \u2022 ${snapshot.status.branch}`,
         cls: "vlg-repo-headline"
       });
+      const switchBtn = headlineRow.createEl("button", { text: "Switch Repo" });
+      switchBtn.addClass("vlg-switch-repo-btn");
       const actions = header.createDiv({ cls: "vlg-sc-actions" });
       const refreshBtn = actions.createEl("button", { text: "Refresh" });
       const undoBtn = actions.createEl("button", { text: "Undo" });
@@ -553,7 +556,6 @@ var SourceControlView = class extends import_obsidian.ItemView {
       const stashBtn = actions.createEl("button", { text: "Stash" });
       const historyBtn = actions.createEl("button", { text: "History" });
       const branchBtn = actions.createEl("button", { text: "Branch" });
-      const switchBtn = actions.createEl("button", { text: "Switch Repo" });
       refreshBtn.onclick = async () => {
         await this.plugin.refreshContext(true);
         await this.render();
@@ -658,9 +660,12 @@ var SourceControlView = class extends import_obsidian.ItemView {
     const section = list.createDiv({ cls: "vlg-change-section" });
     const isCollapsed = this.collapsedSections.get(title) ?? false;
     const titleRow = section.createDiv({ cls: "vlg-change-section-head" });
-    const toggle = titleRow.createEl("button", {
-      text: isCollapsed ? `\u25B8 ${title} (${changes.length})` : `\u25BE ${title} (${changes.length})`,
-      cls: "vlg-change-section-toggle"
+    const toggle = titleRow.createDiv({ cls: "vlg-change-section-toggle" });
+    toggle.setText(isCollapsed ? `\u25B8 ${title.toUpperCase()} (${changes.length})` : `\u25BE ${title.toUpperCase()} (${changes.length})`);
+    toggle.setAttr("role", "button");
+    toggle.setAttr("tabindex", "0");
+    toggle.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") e.currentTarget.click();
     });
     toggle.onclick = async () => {
       const nextCollapsed = !isCollapsed;
