@@ -1,0 +1,24 @@
+{
+  "name": "obsidian-gitus",
+  "version": "0.0.1",
+  "description": "GItUS: VS Code style Git controls for Obsidian",
+  "main": "main.js",
+  "scripts": {
+    "dev": "node esbuild.config.mjs",
+    "build": "node esbuild.config.mjs production",
+    "version": "node version-bump.mjs"
+  },
+  "keywords": [
+    "obsidian",
+    "git",
+    "plugin"
+  ],
+  "author": "Mr Stark Labs",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.14.12",
+    "esbuild": "^0.23.0",
+    "obsidian": "^1.6.7",
+    "typescript": "^5.5.4"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "id": "gitus",
+  "name": "GItUS",
+  "version": "0.0.1",
+  "minAppVersion": "1.5.0",
+  "description": "GItUS: VS Code style Git controls for Obsidian, with nested repository detection.",
+  "author": "Mr Stark Labs",
+  "isDesktopOnly": true,
+  "main": "main.js"
+}
