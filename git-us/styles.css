@@ -160,6 +160,9 @@
   padding: 0 6px;
   justify-content: space-between;
   gap: 4px;
+  background: var(--background-secondary);
+  border-radius: 2px;
+  margin-bottom: 2px;
 }
 
 .vlg-change-section-toggle {
@@ -186,12 +189,20 @@
 .vlg-change-section-actions {
   display: flex;
   gap: 4px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 80ms;
+}
+
+.vlg-change-section-head:hover .vlg-change-section-actions {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .vlg-change-section-actions button {
-  padding: 2px 8px;
+  padding: 1px 7px;
   font-size: 11px;
-  border-color: var(--background-modifier-border) !important;
+  border: 1px solid var(--background-modifier-border) !important;
   color: var(--text-muted);
 }
 
