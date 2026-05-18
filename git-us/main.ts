@@ -665,7 +665,7 @@ class SourceControlView extends ItemView {
   }
 
   getDisplayText(): string {
-    return "GItUS Source Control";
+    return "GitUS Source Control";
   }
 
   getIcon(): string {
@@ -1028,7 +1028,7 @@ class VsCodeLikeGitPlugin extends Plugin {
 
     this.addRibbonIcon(
       GITUS_ICON,
-      "GItUS: Open Source Control view",
+      "GitUS: Open Source Control view",
       async () => {
         await this.activateSourceControlView();
       }
@@ -1545,7 +1545,7 @@ class VsCodeLikeGitPlugin extends Plugin {
       this.currentRepoRoot = repoRoot;
 
       if (!repoRoot) {
-        this.setStatusBarText("GItUS: no repo");
+        this.setStatusBarText("GitUS: no repo");
         return;
       }
 
@@ -1554,7 +1554,7 @@ class VsCodeLikeGitPlugin extends Plugin {
       this.repoRegistry.add(repoRoot);
       const manualTag = this.manualRepoRoot ? " [manual]" : "";
       this.setStatusBarText(
-        `GItUS ${repoName}:${status.branch} S${status.staged} U${status.unstaged} ?${status.untracked} C${status.conflicts} ↑${status.ahead} ↓${status.behind}${manualTag}`
+        `GitUS ${repoName}:${status.branch} S${status.staged} U${status.unstaged} ?${status.untracked} C${status.conflicts} ↑${status.ahead} ↓${status.behind}${manualTag}`
       );
 
       if (manual) {
@@ -1562,7 +1562,7 @@ class VsCodeLikeGitPlugin extends Plugin {
       }
       await this.refreshSourceControlView();
     } catch (error) {
-      this.setStatusBarText("GItUS: error");
+      this.setStatusBarText("GitUS: error");
       new Notice(`Git refresh failed: ${this.toErrorMessage(error)}`);
     }
   }

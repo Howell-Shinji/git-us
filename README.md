@@ -1,8 +1,8 @@
-# GItUS — Git for Obsidian
+# GitUS — Git for Obsidian
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-A VS Code-inspired Source Control plugin for Obsidian that solves the **nested repository problem**: instead of treating the whole vault as one repository, GItUS resolves the nearest `.git` for every active file.
+A VS Code-inspired Source Control plugin for Obsidian that solves the **nested repository problem**: instead of treating the whole vault as one repository, GitUS resolves the nearest `.git` for every active file.
 
 ---
 
@@ -10,7 +10,7 @@ A VS Code-inspired Source Control plugin for Obsidian that solves the **nested r
 
 ### Source Control Panel
 
-Open with `GItUS: Open Source Control view` or the ribbon icon.
+Open with `GitUS: Open Source Control view` or the ribbon icon.
 
 | Area | What you can do |
 |---|---|
@@ -22,7 +22,7 @@ Open with `GItUS: Open Source Control view` or the ribbon icon.
 
 ### Hunk-Level Staging
 
-"Stage Hunks…" and "Unstage Hunks…" open a picker showing every `@@` hunk with a coloured preview. Tick the ones you want, click apply — GItUS writes a minimal patch file to a temp directory and runs `git apply --cached`.
+"Stage Hunks…" and "Unstage Hunks…" open a picker showing every `@@` hunk with a coloured preview. Tick the ones you want, click apply — GitUS writes a minimal patch file to a temp directory and runs `git apply --cached`.
 
 ### Conflict Resolver
 
@@ -51,7 +51,7 @@ Every Diff button opens a coloured diff modal: additions in green, deletions in 
 ### Status Bar
 
 ```
-GItUS repo:branch S2 U1 ?0 C0 ↑1 ↓0
+GitUS repo:branch S2 U1 ?0 C0 ↑1 ↓0
 ```
 `S` staged · `U` unstaged · `?` untracked · `C` conflicts · ↑ ahead · ↓ behind
 
@@ -69,18 +69,18 @@ This means each note can belong to its own repo — monorepos, submodules, multi
 
 | Command | Description |
 |---|---|
-| `GItUS: Open Source Control view` | Open the SCM panel |
-| `GItUS: Refresh context` | Force-refresh status |
-| `GItUS: Switch repository context` | Manually pick a repo from the index |
-| `GItUS: Clear manual repository context` | Return to automatic (file-follows) mode |
-| `GItUS: Rebuild repository index` | Re-scan vault for all `.git` roots |
-| `GItUS: Stage current file` | Stage the open note |
-| `GItUS: Unstage current file` | Unstage the open note |
-| `GItUS: Show diff for current file` | Open diff for the open note |
-| `GItUS: Commit in current repo` | Commit with a message dialog |
-| `GItUS: Pull in current repo` | Pull (warns on dirty tree) |
-| `GItUS: Push in current repo` | Push (warns on dirty tree) |
-| `GItUS: Checkout or create branch` | Switch or create branch |
+| `GitUS: Open Source Control view` | Open the SCM panel |
+| `GitUS: Refresh context` | Force-refresh status |
+| `GitUS: Switch repository context` | Manually pick a repo from the index |
+| `GitUS: Clear manual repository context` | Return to automatic (file-follows) mode |
+| `GitUS: Rebuild repository index` | Re-scan vault for all `.git` roots |
+| `GitUS: Stage current file` | Stage the open note |
+| `GitUS: Unstage current file` | Unstage the open note |
+| `GitUS: Show diff for current file` | Open diff for the open note |
+| `GitUS: Commit in current repo` | Commit with a message dialog |
+| `GitUS: Pull in current repo` | Pull (warns on dirty tree) |
+| `GitUS: Push in current repo` | Push (warns on dirty tree) |
+| `GitUS: Checkout or create branch` | Switch or create branch |
 
 ---
 
@@ -100,7 +100,7 @@ This means each note can belong to its own repo — monorepos, submodules, multi
 1. Run `npm install && npm run build`.
 2. Copy `main.js`, `manifest.json`, and `styles.css` into your vault's plugin folder:  
    `<vault>/.obsidian/plugins/gitus/`
-3. Enable **GItUS** in *Settings → Community Plugins*.
+3. Enable **GitUS** in *Settings → Community Plugins*.
 
 ---
 

@@ -1,7 +1,7 @@
 {
   "name": "obsidian-gitus",
   "version": "0.0.1",
-  "description": "GItUS: VS Code style Git controls for Obsidian",
+  "description": "GitUS: VS Code style Git controls for Obsidian",
   "main": "main.js",
   "scripts": {
     "dev": "node esbuild.config.mjs",

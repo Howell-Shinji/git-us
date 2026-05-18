@@ -501,7 +501,7 @@ var SourceControlView = class extends import_obsidian.ItemView {
     return SOURCE_CONTROL_VIEW_TYPE;
   }
   getDisplayText() {
-    return "GItUS Source Control";
+    return "GitUS Source Control";
   }
   getIcon() {
     return GITUS_ICON;
@@ -824,7 +824,7 @@ var VsCodeLikeGitPlugin = class extends import_obsidian.Plugin {
     this.statusBarEl.addClass("vlg-status");
     this.addRibbonIcon(
       GITUS_ICON,
-      "GItUS: Open Source Control view",
+      "GitUS: Open Source Control view",
       async () => {
         await this.activateSourceControlView();
       }
@@ -1267,7 +1267,7 @@ var VsCodeLikeGitPlugin = class extends import_obsidian.Plugin {
       const repoRoot = await this.resolveActiveRepoRoot();
       this.currentRepoRoot = repoRoot;
       if (!repoRoot) {
-        this.setStatusBarText("GItUS: no repo");
+        this.setStatusBarText("GitUS: no repo");
         return;
       }
       const status = (await this.getRepoSnapshot(repoRoot)).status;
@@ -1275,14 +1275,14 @@ var VsCodeLikeGitPlugin = class extends import_obsidian.Plugin {
       this.repoRegistry.add(repoRoot);
       const manualTag = this.manualRepoRoot ? " [manual]" : "";
       this.setStatusBarText(
-        `GItUS ${repoName}:${status.branch} S${status.staged} U${status.unstaged} ?${status.untracked} C${status.conflicts} \u2191${status.ahead} \u2193${status.behind}${manualTag}`
+        `GitUS ${repoName}:${status.branch} S${status.staged} U${status.unstaged} ?${status.untracked} C${status.conflicts} \u2191${status.ahead} \u2193${status.behind}${manualTag}`
       );
       if (manual) {
         new import_obsidian.Notice(`Repo: ${repoName} (${status.branch})`);
       }
       await this.refreshSourceControlView();
     } catch (error) {
-      this.setStatusBarText("GItUS: error");
+      this.setStatusBarText("GitUS: error");
       new import_obsidian.Notice(`Git refresh failed: ${this.toErrorMessage(error)}`);
     }
   }
