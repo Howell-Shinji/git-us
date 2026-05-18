@@ -153,6 +153,97 @@
   margin-bottom: 4px;
 }
 
+/* ── No-repo empty state ─────────────────────────────────────────────── */
+.vlg-no-repo {
+  padding: 12px 8px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.vlg-no-repo-msg {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.vlg-no-repo-label {
+  margin: 0;
+  color: var(--text-faint);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.vlg-no-repo-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.vlg-no-repo-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 80ms ease;
+}
+
+.vlg-no-repo-item:hover {
+  background: var(--background-modifier-hover);
+}
+
+.vlg-no-repo-icon {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  color: var(--text-muted);
+}
+
+.vlg-no-repo-icon svg {
+  width: 14px;
+  height: 14px;
+}
+
+.vlg-no-repo-name {
+  font-size: 13px;
+  color: var(--text-normal);
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.vlg-no-repo-path {
+  font-size: 11px;
+  color: var(--text-faint);
+  font-family: var(--font-monospace);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.vlg-no-repo-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.vlg-no-repo-actions button {
+  font-size: 11px;
+  padding: 3px 10px;
+  border-radius: 3px;
+  border: 1px solid var(--background-modifier-border);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.vlg-no-repo-actions button:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
 .vlg-change-section-head {
   display: flex;
   align-items: center;
@@ -273,11 +364,42 @@
   padding: 0 6px;
 }
 
+/* Icon button — used for row actions and section header actions */
+.vlg-icon-btn {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0 !important;
+  flex-shrink: 0;
+  color: var(--text-muted);
+}
+
+.vlg-icon-btn:hover {
+  color: var(--text-normal);
+}
+
+.vlg-icon-btn svg {
+  width: 14px;
+  height: 14px;
+  pointer-events: none;
+  flex-shrink: 0;
+}
+
+.vlg-icon-btn.vlg-btn-danger {
+  color: color-mix(in srgb, var(--color-red) 70%, var(--text-muted));
+}
+
+.vlg-icon-btn.vlg-btn-danger:hover {
+  color: var(--color-red);
+}
+
 /* Row action buttons — hidden until hover */
 .vlg-change-actions {
   order: 2;
   display: flex;
-  gap: 2px;
+  gap: 1px;
   flex-shrink: 0;
   opacity: 0;
   pointer-events: none;
@@ -287,23 +409,6 @@
 .vlg-change-row:hover .vlg-change-actions {
   opacity: 1;
   pointer-events: auto;
-}
-
-.vlg-change-actions button {
-  padding: 1px 7px;
-  font-size: 11px;
-  background: var(--background-secondary-alt) !important;
-  border: 1px solid var(--background-modifier-border) !important;
-  color: var(--text-normal) !important;
-}
-
-.vlg-btn-danger {
-  color: var(--color-red) !important;
-  border-color: color-mix(in srgb, var(--color-red) 35%, var(--background-modifier-border)) !important;
-}
-
-.vlg-btn-danger:hover {
-  background: color-mix(in srgb, var(--color-red) 12%, var(--background-secondary-alt)) !important;
 }
 
 .vlg-repo-list {

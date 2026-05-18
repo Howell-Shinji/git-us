@@ -531,7 +531,32 @@ var SourceControlView = class extends import_obsidian.ItemView {
       this.commitBtnEl = null;
       wrap.dataset["shellKey"] = shellKey;
       if (!snapshot) {
-        wrap.createEl("p", { text: "No active Git repository context." });
+        wrap.createEl("h4", { text: "SOURCE CONTROL", cls: "vlg-panel-title" });
+        const emptyWrap = wrap.createDiv({ cls: "vlg-no-repo" });
+        emptyWrap.createEl("p", {
+          text: "No Git repository detected for the current file.",
+          cls: "vlg-no-repo-msg"
+        });
+        const knownRepos = this.plugin.getKnownRepos();
+        if (knownRepos.length > 0) {
+          emptyWrap.createEl("p", { text: "Known repositories:", cls: "vlg-no-repo-label" });
+          const repoList = emptyWrap.createDiv({ cls: "vlg-no-repo-list" });
+          for (const repo of knownRepos) {
+            const item = repoList.createDiv({ cls: "vlg-no-repo-item" });
+            (0, import_obsidian.setIcon)(item.createSpan({ cls: "vlg-no-repo-icon" }), "git-branch");
+            item.createSpan({ text: path.basename(repo), cls: "vlg-no-repo-name" });
+            item.createSpan({ text: repo, cls: "vlg-no-repo-path" });
+            item.onclick = async () => {
+              await this.plugin.selectRepo(repo);
+            };
+          }
+        }
+        const emptyActions = emptyWrap.createDiv({ cls: "vlg-no-repo-actions" });
+        const rebuildBtn = emptyActions.createEl("button", { text: "Rebuild Index" });
+        rebuildBtn.onclick = async () => {
+          await this.plugin.rebuildIndex();
+          await this.render();
+        };
         return;
       }
       const panelTitle = wrap.createEl("h4", {
@@ -675,7 +700,10 @@ var SourceControlView = class extends import_obsidian.ItemView {
     };
     const sectionActions = titleRow.createDiv({ cls: "vlg-change-section-actions" });
     if (title === "Changes" || title === "Untracked Files") {
-      const stageAllBtn = sectionActions.createEl("button", { text: "Stage All" });
+      const stageAllBtn = sectionActions.createEl("button");
+      stageAllBtn.addClass("vlg-icon-btn");
+      stageAllBtn.setAttr("title", "Stage all");
+      (0, import_obsidian.setIcon)(stageAllBtn, "plus");
       stageAllBtn.disabled = changes.length === 0;
       stageAllBtn.onclick = async () => {
         await this.plugin.stageRepoFiles(
@@ -686,7 +714,10 @@ var SourceControlView = class extends import_obsidian.ItemView {
       };
     }
     if (title === "Staged Changes") {
-      const unstageAllBtn = sectionActions.createEl("button", { text: "Unstage All" });
+      const unstageAllBtn = sectionActions.createEl("button");
+      unstageAllBtn.addClass("vlg-icon-btn");
+      unstageAllBtn.setAttr("title", "Unstage all");
+      (0, import_obsidian.setIcon)(unstageAllBtn, "minus");
       unstageAllBtn.disabled = changes.length === 0;
       unstageAllBtn.onclick = async () => {
         await this.plugin.unstageRepoFiles(
@@ -714,7 +745,15 @@ var SourceControlView = class extends import_obsidian.ItemView {
       state.setAttr("aria-label", "Git status code");
       row.createEl("span", { text: change.path, cls: "vlg-change-path" });
       const rowActions = row.createDiv({ cls: "vlg-change-actions" });
-      const diffBtn = rowActions.createEl("button", { text: "Diff" });
+      const mkBtn = (icon, tooltip, danger = false) => {
+        const btn = rowActions.createEl("button");
+        btn.addClass("vlg-icon-btn");
+        if (danger) btn.addClass("vlg-btn-danger");
+        btn.setAttr("title", tooltip);
+        (0, import_obsidian.setIcon)(btn, icon);
+        return btn;
+      };
+      const diffBtn = mkBtn("eye", "Show diff");
       diffBtn.onclick = async () => {
         await this.plugin.showDiffForRepoFile(
           repoRoot,
@@ -723,20 +762,19 @@ var SourceControlView = class extends import_obsidian.ItemView {
         );
       };
       if (change.mode === "unstaged" || change.mode === "untracked") {
-        const stageBtn = rowActions.createEl("button", { text: "Stage" });
+        const stageBtn = mkBtn("plus", "Stage");
         stageBtn.onclick = async () => {
           await this.plugin.stageRepoFile(repoRoot, change.path);
           await this.render();
         };
         if (change.mode === "unstaged") {
-          const stageHunksBtn = rowActions.createEl("button", { text: "Stage Hunks\u2026" });
+          const stageHunksBtn = mkBtn("layers", "Stage hunks\u2026");
           stageHunksBtn.onclick = async () => {
             await this.plugin.openHunkStageModal(repoRoot, change.path);
             await this.render();
           };
         }
-        const discardBtn = rowActions.createEl("button", { text: "Discard" });
-        discardBtn.addClass("vlg-btn-danger");
+        const discardBtn = mkBtn("trash-2", "Discard changes", true);
         discardBtn.onclick = async () => {
           await this.plugin.discardRepoFileChanges(
             repoRoot,
@@ -747,30 +785,29 @@ var SourceControlView = class extends import_obsidian.ItemView {
         };
       }
       if (change.mode === "staged") {
-        const unstageBtn = rowActions.createEl("button", { text: "Unstage" });
+        const unstageBtn = mkBtn("minus", "Unstage");
         unstageBtn.onclick = async () => {
           await this.plugin.unstageRepoFile(repoRoot, change.path);
           await this.render();
         };
-        const unstageHunksBtn = rowActions.createEl("button", { text: "Unstage Hunks\u2026" });
+        const unstageHunksBtn = mkBtn("layers", "Unstage hunks\u2026");
         unstageHunksBtn.onclick = async () => {
           await this.plugin.openHunkUnstageModal(repoRoot, change.path);
           await this.render();
         };
-        const revertBtn = rowActions.createEl("button", { text: "Revert" });
-        revertBtn.addClass("vlg-btn-danger");
+        const revertBtn = mkBtn("rotate-ccw", "Revert to HEAD", true);
         revertBtn.onclick = async () => {
           await this.plugin.revertRepoFileToHead(repoRoot, change.path);
           await this.render();
         };
       }
       if (change.mode === "conflict") {
-        const resolveBtn = rowActions.createEl("button", { text: "Resolve\u2026" });
+        const resolveBtn = mkBtn("git-merge", "Resolve conflict\u2026");
         resolveBtn.onclick = async () => {
           await this.plugin.openConflictResolverModal(repoRoot, change.path);
           await this.render();
         };
-        const markBtn = rowActions.createEl("button", { text: "Mark Resolved" });
+        const markBtn = mkBtn("check", "Mark as resolved");
         markBtn.onclick = async () => {
           await this.plugin.stageRepoFile(repoRoot, change.path);
           await this.render();
@@ -863,28 +900,28 @@ var VsCodeLikeGitPlugin = class extends import_obsidian.Plugin {
   }
   registerCommands() {
     this.addCommand({
-      id: "gitus-refresh-context",
+      id: "refresh-context",
       name: "Refresh context",
       callback: async () => {
         await this.refreshContext(true);
       }
     });
     this.addCommand({
-      id: "gitus-open-source-control",
+      id: "open-source-control",
       name: "Open Source Control view",
       callback: async () => {
         await this.activateSourceControlView();
       }
     });
     this.addCommand({
-      id: "gitus-switch-repository-context",
+      id: "switch-repository-context",
       name: "Switch repository context",
       callback: async () => {
         await this.switchRepositoryContext();
       }
     });
     this.addCommand({
-      id: "gitus-clear-repository-context",
+      id: "clear-repository-context",
       name: "Clear manual repository context",
       callback: async () => {
         this.manualRepoRoot = null;
@@ -892,56 +929,56 @@ var VsCodeLikeGitPlugin = class extends import_obsidian.Plugin {
       }
     });
     this.addCommand({
-      id: "gitus-stage-current-file",
+      id: "stage-current-file",
       name: "Stage current file",
       callback: async () => {
         await this.stageCurrentFile();
       }
     });
     this.addCommand({
-      id: "gitus-unstage-current-file",
+      id: "unstage-current-file",
       name: "Unstage current file",
       callback: async () => {
         await this.unstageCurrentFile();
       }
     });
     this.addCommand({
-      id: "gitus-show-current-file-diff",
+      id: "show-current-file-diff",
       name: "Show diff for current file",
       callback: async () => {
         await this.showCurrentFileDiff();
       }
     });
     this.addCommand({
-      id: "gitus-commit-current-repo",
+      id: "commit-current-repo",
       name: "Commit in current repo",
       callback: async () => {
         await this.commitCurrentRepo();
       }
     });
     this.addCommand({
-      id: "gitus-pull-current-repo",
+      id: "pull-current-repo",
       name: "Pull in current repo",
       callback: async () => {
         await this.pullCurrentRepo();
       }
     });
     this.addCommand({
-      id: "gitus-push-current-repo",
+      id: "push-current-repo",
       name: "Push in current repo",
       callback: async () => {
         await this.pushCurrentRepo();
       }
     });
     this.addCommand({
-      id: "gitus-checkout-branch",
+      id: "checkout-branch",
       name: "Checkout or create branch",
       callback: async () => {
         await this.checkoutOrCreateBranch();
       }
     });
     this.addCommand({
-      id: "gitus-rebuild-repository-index",
+      id: "rebuild-repository-index",
       name: "Rebuild repository index",
       callback: async () => {
         await this.rebuildRepoRegistry();
@@ -1495,6 +1532,17 @@ var VsCodeLikeGitPlugin = class extends import_obsidian.Plugin {
       this.manualRepoRoot = repoRoot;
       await this.refreshContext(true);
     }).open();
+  }
+  getKnownRepos() {
+    return [...this.repoRegistry].sort((a, b) => a.localeCompare(b));
+  }
+  async selectRepo(repoRoot) {
+    this.manualRepoRoot = repoRoot;
+    await this.refreshContext(true);
+  }
+  async rebuildIndex() {
+    await this.rebuildRepoRegistry();
+    await this.refreshContext(true);
   }
   async rebuildRepoRegistry() {
     const adapter = this.app.vault.adapter;

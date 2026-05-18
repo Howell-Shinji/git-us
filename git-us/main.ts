@@ -8,7 +8,8 @@ import {
   PluginSettingTab,
   Setting,
   TFile,
-  WorkspaceLeaf
+  WorkspaceLeaf,
+  setIcon
 } from "obsidian";
 import { execFile } from "node:child_process";
 import * as fs from "node:fs/promises";
@@ -706,7 +707,34 @@ class SourceControlView extends ItemView {
       wrap.dataset["shellKey"] = shellKey;
 
       if (!snapshot) {
-        wrap.createEl("p", { text: "No active Git repository context." });
+        wrap.createEl("h4", { text: "SOURCE CONTROL", cls: "vlg-panel-title" });
+        const emptyWrap = wrap.createDiv({ cls: "vlg-no-repo" });
+        emptyWrap.createEl("p", {
+          text: "No Git repository detected for the current file.",
+          cls: "vlg-no-repo-msg"
+        });
+
+        const knownRepos = this.plugin.getKnownRepos();
+        if (knownRepos.length > 0) {
+          emptyWrap.createEl("p", { text: "Known repositories:", cls: "vlg-no-repo-label" });
+          const repoList = emptyWrap.createDiv({ cls: "vlg-no-repo-list" });
+          for (const repo of knownRepos) {
+            const item = repoList.createDiv({ cls: "vlg-no-repo-item" });
+            setIcon(item.createSpan({ cls: "vlg-no-repo-icon" }), "git-branch");
+            item.createSpan({ text: path.basename(repo), cls: "vlg-no-repo-name" });
+            item.createSpan({ text: repo, cls: "vlg-no-repo-path" });
+            item.onclick = async () => {
+              await this.plugin.selectRepo(repo);
+            };
+          }
+        }
+
+        const emptyActions = emptyWrap.createDiv({ cls: "vlg-no-repo-actions" });
+        const rebuildBtn = emptyActions.createEl("button", { text: "Rebuild Index" });
+        rebuildBtn.onclick = async () => {
+          await this.plugin.rebuildIndex();
+          await this.render();
+        };
         return;
       }
 
@@ -856,7 +884,10 @@ class SourceControlView extends ItemView {
 
     const sectionActions = titleRow.createDiv({ cls: "vlg-change-section-actions" });
     if (title === "Changes" || title === "Untracked Files") {
-      const stageAllBtn = sectionActions.createEl("button", { text: "Stage All" });
+      const stageAllBtn = sectionActions.createEl("button") as HTMLButtonElement;
+      stageAllBtn.addClass("vlg-icon-btn");
+      stageAllBtn.setAttr("title", "Stage all");
+      setIcon(stageAllBtn, "plus");
       stageAllBtn.disabled = changes.length === 0;
       stageAllBtn.onclick = async () => {
         await this.plugin.stageRepoFiles(
@@ -868,7 +899,10 @@ class SourceControlView extends ItemView {
     }
 
     if (title === "Staged Changes") {
-      const unstageAllBtn = sectionActions.createEl("button", { text: "Unstage All" });
+      const unstageAllBtn = sectionActions.createEl("button") as HTMLButtonElement;
+      unstageAllBtn.addClass("vlg-icon-btn");
+      unstageAllBtn.setAttr("title", "Unstage all");
+      setIcon(unstageAllBtn, "minus");
       unstageAllBtn.disabled = changes.length === 0;
       unstageAllBtn.onclick = async () => {
         await this.plugin.unstageRepoFiles(
@@ -901,7 +935,16 @@ class SourceControlView extends ItemView {
       row.createEl("span", { text: change.path, cls: "vlg-change-path" });
 
       const rowActions = row.createDiv({ cls: "vlg-change-actions" });
-      const diffBtn = rowActions.createEl("button", { text: "Diff" });
+      const mkBtn = (icon: string, tooltip: string, danger = false): HTMLButtonElement => {
+        const btn = rowActions.createEl("button") as HTMLButtonElement;
+        btn.addClass("vlg-icon-btn");
+        if (danger) btn.addClass("vlg-btn-danger");
+        btn.setAttr("title", tooltip);
+        setIcon(btn, icon);
+        return btn;
+      };
+
+      const diffBtn = mkBtn("eye", "Show diff");
       diffBtn.onclick = async () => {
         await this.plugin.showDiffForRepoFile(
           repoRoot,
@@ -911,22 +954,21 @@ class SourceControlView extends ItemView {
       };
 
       if (change.mode === "unstaged" || change.mode === "untracked") {
-        const stageBtn = rowActions.createEl("button", { text: "Stage" });
+        const stageBtn = mkBtn("plus", "Stage");
         stageBtn.onclick = async () => {
           await this.plugin.stageRepoFile(repoRoot, change.path);
           await this.render();
         };
 
         if (change.mode === "unstaged") {
-          const stageHunksBtn = rowActions.createEl("button", { text: "Stage Hunks…" });
+          const stageHunksBtn = mkBtn("layers", "Stage hunks…");
           stageHunksBtn.onclick = async () => {
             await this.plugin.openHunkStageModal(repoRoot, change.path);
             await this.render();
           };
         }
 
-        const discardBtn = rowActions.createEl("button", { text: "Discard" });
-        discardBtn.addClass("vlg-btn-danger");
+        const discardBtn = mkBtn("trash-2", "Discard changes", true);
         discardBtn.onclick = async () => {
           await this.plugin.discardRepoFileChanges(
             repoRoot,
@@ -938,20 +980,19 @@ class SourceControlView extends ItemView {
       }
 
       if (change.mode === "staged") {
-        const unstageBtn = rowActions.createEl("button", { text: "Unstage" });
+        const unstageBtn = mkBtn("minus", "Unstage");
         unstageBtn.onclick = async () => {
           await this.plugin.unstageRepoFile(repoRoot, change.path);
           await this.render();
         };
 
-        const unstageHunksBtn = rowActions.createEl("button", { text: "Unstage Hunks…" });
+        const unstageHunksBtn = mkBtn("layers", "Unstage hunks…");
         unstageHunksBtn.onclick = async () => {
           await this.plugin.openHunkUnstageModal(repoRoot, change.path);
           await this.render();
         };
 
-        const revertBtn = rowActions.createEl("button", { text: "Revert" });
-        revertBtn.addClass("vlg-btn-danger");
+        const revertBtn = mkBtn("rotate-ccw", "Revert to HEAD", true);
         revertBtn.onclick = async () => {
           await this.plugin.revertRepoFileToHead(repoRoot, change.path);
           await this.render();
@@ -959,12 +1000,12 @@ class SourceControlView extends ItemView {
       }
 
       if (change.mode === "conflict") {
-        const resolveBtn = rowActions.createEl("button", { text: "Resolve…" });
+        const resolveBtn = mkBtn("git-merge", "Resolve conflict…");
         resolveBtn.onclick = async () => {
           await this.plugin.openConflictResolverModal(repoRoot, change.path);
           await this.render();
         };
-        const markBtn = rowActions.createEl("button", { text: "Mark Resolved" });
+        const markBtn = mkBtn("check", "Mark as resolved");
         markBtn.onclick = async () => {
           await this.plugin.stageRepoFile(repoRoot, change.path);
           await this.render();
@@ -1074,7 +1115,7 @@ class VsCodeLikeGitPlugin extends Plugin {
 
   private registerCommands(): void {
     this.addCommand({
-      id: "gitus-refresh-context",
+      id: "refresh-context",
       name: "Refresh context",
       callback: async () => {
         await this.refreshContext(true);
@@ -1082,7 +1123,7 @@ class VsCodeLikeGitPlugin extends Plugin {
     });
 
     this.addCommand({
-      id: "gitus-open-source-control",
+      id: "open-source-control",
       name: "Open Source Control view",
       callback: async () => {
         await this.activateSourceControlView();
@@ -1090,7 +1131,7 @@ class VsCodeLikeGitPlugin extends Plugin {
     });
 
     this.addCommand({
-      id: "gitus-switch-repository-context",
+      id: "switch-repository-context",
       name: "Switch repository context",
       callback: async () => {
         await this.switchRepositoryContext();
@@ -1098,7 +1139,7 @@ class VsCodeLikeGitPlugin extends Plugin {
     });
 
     this.addCommand({
-      id: "gitus-clear-repository-context",
+      id: "clear-repository-context",
       name: "Clear manual repository context",
       callback: async () => {
         this.manualRepoRoot = null;
@@ -1107,7 +1148,7 @@ class VsCodeLikeGitPlugin extends Plugin {
     });
 
     this.addCommand({
-      id: "gitus-stage-current-file",
+      id: "stage-current-file",
       name: "Stage current file",
       callback: async () => {
         await this.stageCurrentFile();
@@ -1115,7 +1156,7 @@ class VsCodeLikeGitPlugin extends Plugin {
     });
 
     this.addCommand({
-      id: "gitus-unstage-current-file",
+      id: "unstage-current-file",
       name: "Unstage current file",
       callback: async () => {
         await this.unstageCurrentFile();
@@ -1123,7 +1164,7 @@ class VsCodeLikeGitPlugin extends Plugin {
     });
 
     this.addCommand({
-      id: "gitus-show-current-file-diff",
+      id: "show-current-file-diff",
       name: "Show diff for current file",
       callback: async () => {
         await this.showCurrentFileDiff();
@@ -1131,7 +1172,7 @@ class VsCodeLikeGitPlugin extends Plugin {
     });
 
     this.addCommand({
-      id: "gitus-commit-current-repo",
+      id: "commit-current-repo",
       name: "Commit in current repo",
       callback: async () => {
         await this.commitCurrentRepo();
@@ -1139,7 +1180,7 @@ class VsCodeLikeGitPlugin extends Plugin {
     });
 
     this.addCommand({
-      id: "gitus-pull-current-repo",
+      id: "pull-current-repo",
       name: "Pull in current repo",
       callback: async () => {
         await this.pullCurrentRepo();
@@ -1147,7 +1188,7 @@ class VsCodeLikeGitPlugin extends Plugin {
     });
 
     this.addCommand({
-      id: "gitus-push-current-repo",
+      id: "push-current-repo",
       name: "Push in current repo",
       callback: async () => {
         await this.pushCurrentRepo();
@@ -1155,7 +1196,7 @@ class VsCodeLikeGitPlugin extends Plugin {
     });
 
     this.addCommand({
-      id: "gitus-checkout-branch",
+      id: "checkout-branch",
       name: "Checkout or create branch",
       callback: async () => {
         await this.checkoutOrCreateBranch();
@@ -1163,7 +1204,7 @@ class VsCodeLikeGitPlugin extends Plugin {
     });
 
     this.addCommand({
-      id: "gitus-rebuild-repository-index",
+      id: "rebuild-repository-index",
       name: "Rebuild repository index",
       callback: async () => {
         await this.rebuildRepoRegistry();
@@ -1817,6 +1858,20 @@ class VsCodeLikeGitPlugin extends Plugin {
       this.manualRepoRoot = repoRoot;
       await this.refreshContext(true);
     }).open();
+  }
+
+  getKnownRepos(): string[] {
+    return [...this.repoRegistry].sort((a, b) => a.localeCompare(b));
+  }
+
+  async selectRepo(repoRoot: string): Promise<void> {
+    this.manualRepoRoot = repoRoot;
+    await this.refreshContext(true);
+  }
+
+  async rebuildIndex(): Promise<void> {
+    await this.rebuildRepoRegistry();
+    await this.refreshContext(true);
   }
 
   private async rebuildRepoRegistry(): Promise<void> {

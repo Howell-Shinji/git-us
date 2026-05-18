@@ -1,7 +1,7 @@
 {
   "name": "obsidian-gitus",
-  "version": "0.0.1",
-  "description": "GitUS: VS Code style Git controls for Obsidian",
+  "version": "1.2.0",
+  "description": "Manage Git repositories from Obsidian with VS Code-style source control, hunk staging, conflict resolution, and nested repo detection.",
   "main": "main.js",
   "scripts": {
     "dev": "node esbuild.config.mjs",
