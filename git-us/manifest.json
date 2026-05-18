@@ -1,7 +1,7 @@
 {
   "id": "gitus",
   "name": "GitUS",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "minAppVersion": "1.5.0",
   "description": "Manage Git repositories from Obsidian with VS Code-style source control, hunk staging, conflict resolution, and nested repo detection.",
   "author": "Mr Stark Labs",

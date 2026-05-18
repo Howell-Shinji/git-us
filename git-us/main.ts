@@ -1761,6 +1761,33 @@ class VsCodeLikeGitPlugin extends Plugin {
     }
   }
 
+  private unquoteGitPath(raw: string): string {
+    // git quotes paths containing non-ASCII or special chars as "path\303\274..."
+    if (!raw.startsWith('"')) return raw;
+    const inner = raw.slice(1, -1); // strip surrounding quotes
+    // First pass: collect bytes / chars
+    const bytes: number[] = [];
+    let i = 0;
+    while (i < inner.length) {
+      if (inner[i] === "\\" && i + 1 < inner.length) {
+        const next = inner[i + 1];
+        if (next >= "0" && next <= "7") {
+          // octal escape \nnn
+          bytes.push(parseInt(inner.slice(i + 1, i + 4), 8));
+          i += 4;
+        } else {
+          const map: Record<string, number> = { "\\": 92, n: 10, t: 9, r: 13, b: 8, '"': 34 };
+          bytes.push(map[next] ?? next.charCodeAt(0));
+          i += 2;
+        }
+      } else {
+        bytes.push(inner.charCodeAt(i));
+        i += 1;
+      }
+    }
+    return new TextDecoder("utf-8").decode(new Uint8Array(bytes));
+  }
+
   private parsePorcelainChanges(porcelain: string): FileChange[] {
     const lines = porcelain
       .split("\n")
@@ -1771,7 +1798,7 @@ class VsCodeLikeGitPlugin extends Plugin {
     for (const line of lines) {
       const x = line[0] ?? " ";
       const y = line[1] ?? " ";
-      let filePath = line.slice(3).trim();
+      let filePath = this.unquoteGitPath(line.slice(3).trim());
 
       if (filePath.includes(" -> ")) {
         const parts = filePath.split(" -> ");
