@@ -1,0 +1,30 @@
+{
+  "name": "obsidian-gitus",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Manage Git repositories from Obsidian with VS Code-style source control, hunk staging, conflict resolution, and nested repo detection.",
+  "main": "main.js",
+  "scripts": {
+    "dev": "node esbuild.config.mjs",
+    "build": "node esbuild.config.mjs production",
+    "check": "tsc --noEmit",
+    "release:check": "npm run check && npm run build",
+    "version": "node version-bump.mjs && git add manifest.json versions.json"
+  },
+  "keywords": [
+    "obsidian",
+    "git",
+    "plugin"
+  ],
+  "author": "Mr Stark Labs",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.12",
+    "esbuild": "^0.23.0",
+    "obsidian": "^1.6.7",
+    "typescript": "^5.5.4"
+  }
+}

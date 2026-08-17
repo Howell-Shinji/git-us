@@ -1,8 +1,10 @@
-# GitUS — Git for Obsidian
+# GitUS - Git for Obsidian
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-A VS Code-inspired Source Control plugin for Obsidian that solves the **nested repository problem**: instead of treating the whole vault as one repository, GitUS resolves the nearest `.git` for every active file.
+A VS Code-inspired Source Control plugin for Obsidian. GitUS provides staging, diffs, commits, branches, stashes, conflict resolution, and nested repository discovery without leaving your vault.
+
+GitUS is a desktop-only plugin. It requires Obsidian 1.5.0 or later and a working local Git installation.
 
 ---
 
@@ -26,7 +28,7 @@ Open with `GitUS: Open Source Control view` or the ribbon icon.
 
 ### Conflict Resolver
 
-"Resolve…" opens a side-by-side modal with **Current (HEAD)** and **Incoming** content extracted from the conflict markers. Choose:
+"Resolve…" opens a side-by-side modal with **Current (HEAD)**, optional **Base**, and **Incoming** content extracted from conflict markers. Choose:
 
 - **Accept Current** — keep ours, discard theirs
 - **Accept Incoming** — keep theirs, discard ours
@@ -88,17 +90,27 @@ This means each note can belong to its own repo — monorepos, submodules, multi
 
 | Setting | Default | Description |
 |---|---|---|
-| Git binary | `git` | Path to git executable |
-| Auto-refresh interval | `5 s` | How often to poll for changes |
+| Git binary | Executable or absolute path used to run Git |
+| Auto-refresh interval | Polling frequency for repository state |
+| Git timeout | Maximum time allowed for a Git operation |
+| Visible changes limit | Initial file count rendered per section in large repositories |
 
 ---
 
 ## Installation
 
+### Community plugins
+
+After GitUS is accepted into the Obsidian Community directory:
+
+1. Open **Settings → Community plugins** in Obsidian.
+2. Select **Browse**, search for **GitUS**, and select **Install**.
+3. Enable the plugin.
+
 ### Manual
 
-1. Run `npm install && npm run build`.
-2. Copy `main.js`, `manifest.json`, and `styles.css` into your vault's plugin folder:  
+1. Download `main.js`, `manifest.json`, and `styles.css` from a GitHub release.
+2. Put the files in your vault's plugin folder:  
    `<vault>/.obsidian/plugins/gitus/`
 3. Enable **GitUS** in *Settings → Community Plugins*.
 
@@ -107,12 +119,35 @@ This means each note can belong to its own repo — monorepos, submodules, multi
 ## Development
 
 ```bash
-npm install
+npm ci
 npm run dev   # watch mode
 npm run build # production bundle
+npm run check # TypeScript validation
 ```
 
 Requires Node ≥ 18 and a local Git installation.
+
+---
+
+## Security and privacy
+
+GitUS does not include telemetry, analytics, advertisements, or a remote service. To provide Git functionality, it:
+
+- Executes the configured Git binary as a local child process.
+- Reads repository metadata and can modify working-tree files when you explicitly stage, discard, resolve, stash, commit, or switch branches.
+- Can access configured remotes only when you explicitly run network-capable Git operations such as pull or push. Authentication is handled by your Git installation.
+
+Review changes before destructive actions and keep an external backup of important repositories.
+
+---
+
+## Releasing
+
+1. Ensure `minAppVersion` in `manifest.json` is correct.
+2. Run `npm version patch`, `npm version minor`, or `npm version major`.
+3. Push the commit and the generated numeric tag, for example `1.0.1`.
+4. GitHub Actions builds and validates the plugin, then creates a draft release containing `main.js`, `manifest.json`, and `styles.css`.
+5. Review the generated draft release notes and publish the release.
 
 ---
 
@@ -137,5 +172,4 @@ styles.css                    VS Code-inspired flat SCM styles
 
 ## License
 
-[MIT](LICENSE) © 2026
-
+[MIT](LICENSE) © 2026 Mr Stark Labs
