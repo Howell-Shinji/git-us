@@ -4,6 +4,7 @@ import {
   ItemView,
   Modal,
   Notice,
+  Platform,
   Plugin,
   PluginSettingTab,
   Setting,
@@ -11,13 +12,46 @@ import {
   WorkspaceLeaf,
   setIcon
 } from "obsidian";
-import { execFile } from "node:child_process";
-import * as fs from "node:fs/promises";
-import * as os from "node:os";
-import * as path from "node:path";
-import { promisify } from "node:util";
 
-const execFileAsync = promisify(execFile);
+type ExecFileAsync = (
+  file: string,
+  args: readonly string[],
+  options: import("node:child_process").ExecFileOptionsWithStringEncoding
+) => Promise<{ stdout: string; stderr: string }>;
+
+let execFileAsync: ExecFileAsync;
+let fs: typeof import("node:fs/promises");
+let os: typeof import("node:os");
+let path: typeof import("node:path");
+
+async function loadDesktopModules(): Promise<void> {
+  if (!Platform.isDesktopApp) {
+    throw new Error("GitUS requires the desktop version of Obsidian");
+  }
+
+  const [childProcess, fsModule, osModule, pathModule] = await Promise.all([
+    import("node:child_process"),
+    import("node:fs/promises"),
+    import("node:os"),
+    import("node:path")
+  ]);
+
+  fs = fsModule;
+  os = osModule;
+  path = pathModule;
+  execFileAsync = (file, args, options) => new Promise((resolve, reject) => {
+    childProcess.execFile(file, args, options, (error, stdout, stderr) => {
+      if (error) {
+        Reflect.set(error, "stdout", stdout);
+        Reflect.set(error, "stderr", stderr);
+        reject(error);
+        return;
+      }
+      resolve({ stdout, stderr });
+    });
+  });
+}
+
 const SOURCE_CONTROL_VIEW_TYPE = "gitus-source-control-view";
 const GITUS_ICON = "git-branch";
 
@@ -338,7 +372,7 @@ class StashModal extends Modal {
     // ── Push new stash ────────────────────────────────────────────────────
     contentEl.createEl("h4", { text: "Save stash" });
     const msgRow = contentEl.createDiv({ cls: "vlg-stash-input-row" });
-    const msgInput = msgRow.createEl("input") as HTMLInputElement;
+    const msgInput = msgRow.createEl("input");
     msgInput.type = "text";
     msgInput.placeholder = "Stash message (optional)";
     msgInput.addClass("vlg-input");
@@ -695,7 +729,7 @@ class HunkPickerModal extends Modal {
     for (const hunk of this.hunks) {
       const row = hunkList.createDiv({ cls: "vlg-hunk-row" });
 
-      const checkbox = row.createEl("input") as HTMLInputElement;
+      const checkbox = row.createEl("input");
       checkbox.type = "checkbox";
       checkbox.checked = true;
       checkbox.addClass("vlg-hunk-check");
@@ -876,7 +910,7 @@ class SourceControlView extends ItemView {
 
       const actions = header.createDiv({ cls: "vlg-sc-actions" });
       const makeAction = (icon: string, title: string): HTMLButtonElement => {
-        const button = actions.createEl("button") as HTMLButtonElement;
+          const button = actions.createEl("button");
         button.addClass("vlg-icon-btn");
         button.setAttr("title", title);
         button.setAttr("aria-label", title);
@@ -911,13 +945,13 @@ class SourceControlView extends ItemView {
 
       // ── Inline commit area (VS Code style) ──────────────────────────────
       const commitArea = wrap.createDiv({ cls: "vlg-commit-area" });
-      const ta = commitArea.createEl("textarea") as HTMLTextAreaElement;
+        const ta = commitArea.createEl("textarea");
       ta.placeholder = "Message (Ctrl+Enter to commit)";
       ta.addClass("vlg-commit-input");
       ta.value = this.commitDrafts.get(snapshot.repoRoot) ?? "";
       this.commitInputEl = ta;
 
-      const commitBtn = commitArea.createEl("button") as HTMLButtonElement;
+        const commitBtn = commitArea.createEl("button");
       commitBtn.addClass("vlg-commit-btn");
       commitBtn.disabled = true;
       this.commitBtnEl = commitBtn;
@@ -926,8 +960,6 @@ class SourceControlView extends ItemView {
 
       ta.addEventListener("input", () => {
         this.commitDrafts.set(snapshot.repoRoot, ta.value);
-        ta.style.height = "auto";
-        ta.style.height = `${Math.min(120, Math.max(52, ta.scrollHeight))}px`;
         if (this.commitBtnEl) {
           const current = this.plugin.getSourceControlState();
           this.commitBtnEl.disabled =
@@ -1089,7 +1121,7 @@ class SourceControlView extends ItemView {
 
     const sectionActions = titleRow.createDiv({ cls: "vlg-change-section-actions" });
     if (title === "Changes" || title === "Untracked Files") {
-      const stageAllBtn = sectionActions.createEl("button") as HTMLButtonElement;
+        const stageAllBtn = sectionActions.createEl("button");
       stageAllBtn.addClass("vlg-icon-btn");
       stageAllBtn.setAttr("title", "Stage all");
       setIcon(stageAllBtn, "plus");
@@ -1103,7 +1135,7 @@ class SourceControlView extends ItemView {
     }
 
     if (title === "Staged Changes") {
-      const unstageAllBtn = sectionActions.createEl("button") as HTMLButtonElement;
+        const unstageAllBtn = sectionActions.createEl("button");
       unstageAllBtn.addClass("vlg-icon-btn");
       unstageAllBtn.setAttr("title", "Unstage all");
       setIcon(unstageAllBtn, "minus");
@@ -1143,7 +1175,7 @@ class SourceControlView extends ItemView {
 
       const rowActions = row.createDiv({ cls: "vlg-change-actions" });
       const mkBtn = (icon: string, tooltip: string, danger = false): HTMLButtonElement => {
-        const btn = rowActions.createEl("button") as HTMLButtonElement;
+          const btn = rowActions.createEl("button");
         btn.addClass("vlg-icon-btn");
         if (danger) btn.addClass("vlg-btn-danger");
         btn.setAttr("title", tooltip);
@@ -1318,6 +1350,7 @@ class VsCodeLikeGitPlugin extends Plugin {
   private activeOperation: string | null = null;
 
   async onload(): Promise<void> {
+    await loadDesktopModules();
     await this.loadSettings();
     this.currentFile = this.app.workspace.getActiveFile();
 
@@ -1369,8 +1402,6 @@ class VsCodeLikeGitPlugin extends Plugin {
       window.clearTimeout(this.refreshDebounceId);
       this.refreshDebounceId = null;
     }
-
-    this.app.workspace.detachLeavesOfType(SOURCE_CONTROL_VIEW_TYPE);
   }
 
   private registerCommands(): void {
@@ -2319,7 +2350,8 @@ class VsCodeLikeGitPlugin extends Plugin {
   private async discoverRepositories(basePath: string): Promise<Set<string>> {
     const repositories = new Set<string>();
     const queue = [path.resolve(basePath)];
-    const skippedDirectories = new Set([".git", ".obsidian", ".trash", "node_modules"]);
+    const configRoot = this.app.vault.configDir.split("/")[0];
+    const skippedDirectories = new Set([".git", configRoot, ".trash", "node_modules"]);
     let cursor = 0;
 
     const worker = async (): Promise<void> => {
@@ -2414,16 +2446,39 @@ class VsCodeLikeGitPlugin extends Plugin {
     }, 350);
   }
 
-  async loadSettings(): Promise<void> {
-    const loaded = (await this.loadData()) as Partial<GitPluginSettings> | null;
-    this.settings = {
-      ...DEFAULT_SETTINGS,
-      ...loaded,
-      collapsedSections: {
-        ...DEFAULT_SETTINGS.collapsedSections,
-        ...(loaded?.collapsedSections ?? {})
-      }
+  private parseSettings(raw: unknown): GitPluginSettings {
+    const loaded = raw !== null && typeof raw === "object"
+      ? raw as Record<string, unknown>
+      : {};
+    const readNumber = (key: string, fallback: number, min: number, max: number): number => {
+      const value = loaded[key];
+      return typeof value === "number" && Number.isFinite(value)
+        ? Math.min(max, Math.max(min, value))
+        : fallback;
     };
+    const collapsedSections = { ...DEFAULT_SETTINGS.collapsedSections };
+    const savedSections = loaded["collapsedSections"];
+    if (savedSections !== null && typeof savedSections === "object") {
+      for (const [name, value] of Object.entries(savedSections)) {
+        if (typeof value === "boolean") collapsedSections[name] = value;
+      }
+    }
+
+    const savedGitBinary = loaded["gitBinary"];
+    return {
+      gitBinary: typeof savedGitBinary === "string" && savedGitBinary.trim()
+        ? savedGitBinary.trim()
+        : DEFAULT_SETTINGS.gitBinary,
+      autoRefreshSeconds: readNumber("autoRefreshSeconds", DEFAULT_SETTINGS.autoRefreshSeconds, 2, 30),
+      gitTimeoutSeconds: readNumber("gitTimeoutSeconds", DEFAULT_SETTINGS.gitTimeoutSeconds, 5, 120),
+      maxVisibleChanges: readNumber("maxVisibleChanges", DEFAULT_SETTINGS.maxVisibleChanges, 50, 1000),
+      collapsedSections
+    };
+  }
+
+  async loadSettings(): Promise<void> {
+    const loaded: unknown = await this.loadData();
+    this.settings = this.parseSettings(loaded);
   }
 
   async saveSettings(): Promise<void> {
@@ -2438,6 +2493,65 @@ class GitSettingsTab extends PluginSettingTab {
   constructor(app: App, plugin: VsCodeLikeGitPlugin) {
     super(app, plugin);
     this.plugin = plugin;
+  }
+
+  getSettingDefinitions() {
+    return [
+      {
+        name: "Git binary",
+        desc: "Path to git executable. Example: git or /usr/bin/git",
+        control: { type: "text", key: "gitBinary", placeholder: "git" }
+      },
+      {
+        name: "Auto refresh interval (seconds)",
+        desc: "How often to refresh branch and change counts",
+        control: { type: "slider", key: "autoRefreshSeconds", min: 2, max: 30, step: 1 }
+      },
+      {
+        name: "Git command timeout (seconds)",
+        desc: "Stops a stalled Git process without freezing source control",
+        control: { type: "slider", key: "gitTimeoutSeconds", min: 5, max: 120, step: 5 }
+      },
+      {
+        name: "Changes per section",
+        desc: "Initial number of file rows rendered in large repositories",
+        control: { type: "slider", key: "maxVisibleChanges", min: 50, max: 1000, step: 50 }
+      }
+    ];
+  }
+
+  getControlValue(key: string): unknown {
+    switch (key) {
+      case "gitBinary": return this.plugin.settings.gitBinary;
+      case "autoRefreshSeconds": return this.plugin.settings.autoRefreshSeconds;
+      case "gitTimeoutSeconds": return this.plugin.settings.gitTimeoutSeconds;
+      case "maxVisibleChanges": return this.plugin.settings.maxVisibleChanges;
+      default: return undefined;
+    }
+  }
+
+  async setControlValue(key: string, value: unknown): Promise<void> {
+    switch (key) {
+      case "gitBinary":
+        if (typeof value !== "string") return;
+        this.plugin.settings.gitBinary = value.trim() || DEFAULT_SETTINGS.gitBinary;
+        break;
+      case "autoRefreshSeconds":
+        if (typeof value !== "number") return;
+        this.plugin.settings.autoRefreshSeconds = Math.min(30, Math.max(2, value));
+        break;
+      case "gitTimeoutSeconds":
+        if (typeof value !== "number") return;
+        this.plugin.settings.gitTimeoutSeconds = Math.min(120, Math.max(5, value));
+        break;
+      case "maxVisibleChanges":
+        if (typeof value !== "number") return;
+        this.plugin.settings.maxVisibleChanges = Math.min(1000, Math.max(50, value));
+        break;
+      default:
+        return;
+    }
+    await this.plugin.saveSettings();
   }
 
   display(): void {
