@@ -145,7 +145,7 @@ Review changes before destructive actions and keep an external backup of importa
 
 1. Ensure `minAppVersion` in `manifest.json` is correct.
 2. Run `npm version patch`, `npm version minor`, or `npm version major`.
-3. Push the commit and the generated numeric tag, for example `1.0.1`.
+3. Push the commit and the generated numeric tag, for example `1.0.2`.
 4. GitHub Actions builds and validates the plugin, then creates a draft release containing `main.js`, `manifest.json`, and `styles.css`.
 5. Review the generated draft release notes and publish the release.
 

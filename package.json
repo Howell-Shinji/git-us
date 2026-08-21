@@ -1,6 +1,6 @@
 {
   "name": "obsidian-gitus",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "private": true,
   "description": "Manage Git repositories from Obsidian with VS Code-style source control, hunk staging, conflict resolution, and nested repo detection.",
   "main": "main.js",
