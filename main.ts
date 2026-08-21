@@ -44,7 +44,7 @@ async function loadDesktopModules(): Promise<void> {
       if (error) {
         Reflect.set(error, "stdout", stdout);
         Reflect.set(error, "stderr", stderr);
-        reject(error);
+        reject(error instanceof Error ? error : new Error(String(error)));
         return;
       }
       resolve({ stdout, stderr });
@@ -2286,7 +2286,7 @@ class VsCodeLikeGitPlugin extends Plugin {
       leaf = rightLeaf;
       await leaf.setViewState({ type: SOURCE_CONTROL_VIEW_TYPE, active: true });
     }
-    this.app.workspace.revealLeaf(leaf);
+    await this.app.workspace.revealLeaf(leaf);
     await this.refreshSourceControlView();
   }
 

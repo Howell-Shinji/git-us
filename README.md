@@ -4,7 +4,7 @@
 
 A VS Code-inspired Source Control plugin for Obsidian. GitUS provides staging, diffs, commits, branches, stashes, conflict resolution, and nested repository discovery without leaving your vault.
 
-GitUS is a desktop-only plugin. It requires Obsidian 1.5.0 or later and a working local Git installation.
+GitUS is a desktop-only plugin. It requires Obsidian 1.7.2 or later and a working local Git installation.
 
 ---
 
