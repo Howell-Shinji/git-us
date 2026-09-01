@@ -1,7 +1,7 @@
 {
   "id": "gitus",
   "name": "GitUS",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "minAppVersion": "1.7.2",
   "description": "Manage Git repositories with VS Code-style source control, hunk staging, conflict resolution, and nested repo detection.",
   "author": "Mr Stark Labs",

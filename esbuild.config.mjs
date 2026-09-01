@@ -7,7 +7,7 @@ const context = await esbuild.context({
   entryPoints: ["main.ts"],
   bundle: true,
   platform: "node",
-  external: ["obsidian", "electron", "path", "fs", "child_process", "util"],
+  external: ["obsidian", "electron", "path", "fs", "fs/promises", "os", "child_process"],
   format: "cjs",
   target: "es2020",
   logLevel: "info",

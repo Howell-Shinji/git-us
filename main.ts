@@ -24,21 +24,15 @@ let fs: typeof import("node:fs/promises");
 let os: typeof import("node:os");
 let path: typeof import("node:path");
 
-async function loadDesktopModules(): Promise<void> {
+function loadDesktopModules(): void {
   if (!Platform.isDesktopApp) {
     throw new Error("GitUS requires the desktop version of Obsidian");
   }
 
-  const [childProcess, fsModule, osModule, pathModule] = await Promise.all([
-    import("node:child_process"),
-    import("node:fs/promises"),
-    import("node:os"),
-    import("node:path")
-  ]);
-
-  fs = fsModule;
-  os = osModule;
-  path = pathModule;
+  const childProcess = require("child_process") as typeof import("node:child_process");
+  fs = require("fs/promises") as typeof import("node:fs/promises");
+  os = require("os") as typeof import("node:os");
+  path = require("path") as typeof import("node:path");
   execFileAsync = (file, args, options) => new Promise((resolve, reject) => {
     childProcess.execFile(file, args, options, (error, stdout, stderr) => {
       if (error) {
@@ -1350,7 +1344,7 @@ class VsCodeLikeGitPlugin extends Plugin {
   private activeOperation: string | null = null;
 
   async onload(): Promise<void> {
-    await loadDesktopModules();
+    loadDesktopModules();
     await this.loadSettings();
     this.currentFile = this.app.workspace.getActiveFile();
 
