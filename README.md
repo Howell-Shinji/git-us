@@ -62,8 +62,11 @@ GitUS repo:branch S2 U1 ?0 C0 ↑1 ↓0
 1. Take the absolute path of the active note.
 2. Walk parent directories upward, stopping at vault root.
 3. First directory with a `.git` directory **or** a `.git` file (`gitdir:`) becomes the active repo.
+4. If no vault repo is found, resolve the note's symlink and match its real path against registered extra repository roots.
 
 This means each note can belong to its own repo — monorepos, submodules, multi-project vaults all work correctly.
+
+For a symlink to only part of a repository outside the vault, add that repository's absolute worktree root under **Extra repository roots** in GitUS settings. Enter one path per line, then select **Rebuild index**. Valid roots appear in **Switch repository context**; linked notes select the matching root automatically. Invalid paths are skipped and reported when you rebuild. Git actions in these repositories can change files outside the vault.
 
 ---
 
@@ -75,7 +78,7 @@ This means each note can belong to its own repo — monorepos, submodules, multi
 | `GitUS: Refresh context` | Force-refresh status |
 | `GitUS: Switch repository context` | Manually pick a repo from the index |
 | `GitUS: Clear manual repository context` | Return to automatic (file-follows) mode |
-| `GitUS: Rebuild repository index` | Re-scan vault for all `.git` roots |
+| `GitUS: Rebuild repository index` | Re-scan vault and validate extra repository roots |
 | `GitUS: Stage current file` | Stage the open note |
 | `GitUS: Unstage current file` | Unstage the open note |
 | `GitUS: Show diff for current file` | Open diff for the open note |
@@ -90,10 +93,11 @@ This means each note can belong to its own repo — monorepos, submodules, multi
 
 | Setting | Default | Description |
 |---|---|---|
-| Git binary | Executable or absolute path used to run Git |
-| Auto-refresh interval | Polling frequency for repository state |
-| Git timeout | Maximum time allowed for a Git operation |
-| Visible changes limit | Initial file count rendered per section in large repositories |
+| Git binary | `git` | Executable or absolute path used to run Git |
+| Auto-refresh interval | 5 seconds | Polling frequency for repository state |
+| Git timeout | 30 seconds | Maximum time allowed for a Git operation |
+| Visible changes limit | 250 | Initial file count rendered per section in large repositories |
+| Extra repository roots | None | Absolute Git worktree roots, one per line; may be outside the vault |
 
 ---
 

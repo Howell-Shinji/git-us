@@ -62,28 +62,37 @@
 }
 
 .vlg-diff {
-  white-space: pre-wrap;
-  max-height: 60vh;
+  white-space: pre;
+  max-height: 70vh;
   overflow: auto;
   border: 1px solid var(--background-modifier-border);
-  border-radius: 6px;
-  padding: 10px;
+  border-radius: 4px;
+  padding: 12px;
+  font-family: var(--font-monospace);
+  font-size: 11px;
+  line-height: 1.55;
+  tab-size: 4;
 }
 
 .vlg-sc-header {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
   border-bottom: 1px solid var(--background-modifier-border);
-  padding-bottom: 8px;
-  margin-bottom: 10px;
+  padding: 0 2px 7px;
+  margin-bottom: 7px;
 }
 
 .vlg-panel-title {
-  margin: 0 0 6px;
-  font-size: 11px;
-  letter-spacing: 0.08em;
-  color: var(--text-muted);
+  min-height: 24px;
+  display: flex;
+  align-items: center;
+  margin: 0;
+  padding: 0 7px;
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.09em;
+  color: var(--text-faint);
 }
 
 .vlg-headline-row {
@@ -91,18 +100,23 @@
   align-items: center;
   justify-content: space-between;
   gap: 4px;
+  min-height: 28px;
+  padding: 0 4px 0 7px;
+  border-radius: 4px;
+  background: var(--background-secondary);
 }
 
 .vlg-repo-headline {
   font-size: 12px;
-  color: var(--text-muted);
-  font-weight: 400;
-  padding: 0 2px;
+  color: var(--text-normal);
+  font-weight: 550;
+  padding: 0;
   flex: 1;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-family: var(--font-interface);
 }
 
 .vlg-switch-repo-btn {
@@ -118,8 +132,12 @@
 
 .vlg-sc-actions {
   display: flex;
-  gap: 4px;
+  gap: 1px;
   flex-wrap: nowrap;
+  min-height: 26px;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 1px 2px 0;
 }
 
 .vlg-sc-actions button {
@@ -133,10 +151,13 @@
 }
 
 .vlg-sc-stats {
-  margin: 2px 0 6px;
+  min-height: 18px;
+  margin: 0 2px 5px;
   color: var(--text-faint);
   font-size: 11px;
-  padding: 0 2px;
+  padding: 0 5px;
+  font-variant-numeric: tabular-nums;
+  line-height: 18px;
 }
 
 .vlg-change-list,
@@ -150,21 +171,25 @@
   display: flex;
   flex-direction: column;
   gap: 0;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
 
 /* ── No-repo empty state ─────────────────────────────────────────────── */
 .vlg-no-repo {
-  padding: 12px 8px 8px;
+  padding: 30px 10px 10px;
   display: flex;
   flex-direction: column;
   gap: 10px;
+  align-items: stretch;
 }
 
 .vlg-no-repo-msg {
-  margin: 0;
+  max-width: 260px;
+  margin: 0 auto 8px;
   color: var(--text-muted);
   font-size: 12px;
+  text-align: center;
+  line-height: 1.45;
 }
 
 .vlg-no-repo-label {
@@ -227,6 +252,8 @@
 .vlg-no-repo-actions {
   display: flex;
   gap: 6px;
+  justify-content: center;
+  margin-top: 2px;
 }
 
 .vlg-no-repo-actions button {
@@ -247,23 +274,34 @@
 .vlg-change-section-head {
   display: flex;
   align-items: center;
-  height: 22px;
-  padding: 0 6px;
+  position: sticky;
+  top: -7px;
+  z-index: 2;
+  height: 25px;
+  padding: 0 3px;
   justify-content: space-between;
   gap: 4px;
-  background: var(--background-secondary);
-  border-radius: 2px;
-  margin-bottom: 2px;
+  margin: 0;
+  border-radius: 0;
+  border-top: 1px solid var(--background-modifier-border);
+  border-bottom: 1px solid color-mix(in srgb, var(--background-modifier-border) 65%, transparent);
+  background: color-mix(in srgb, var(--background-secondary) 94%, transparent);
+  backdrop-filter: blur(8px);
 }
 
 .vlg-change-section-toggle {
   flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  height: 100%;
   background: none;
   border: none;
   color: var(--text-muted);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.07em;
   padding: 0;
   text-align: left;
   cursor: pointer;
@@ -279,7 +317,7 @@
 
 .vlg-change-section-actions {
   display: flex;
-  gap: 4px;
+  gap: 1px;
   opacity: 0;
   pointer-events: none;
   transition: opacity 80ms;
@@ -291,9 +329,11 @@
 }
 
 .vlg-change-section-actions button {
-  padding: 1px 7px;
+  width: 20px;
+  height: 20px;
+  padding: 0;
   font-size: 11px;
-  border: 1px solid var(--background-modifier-border);
+  border: 0;
   color: var(--text-muted);
 }
 
@@ -319,13 +359,15 @@
 .vlg-change-row {
   display: flex;
   align-items: center;
-  height: 22px;
-  padding: 0 4px;
+  position: relative;
+  min-height: 27px;
+  height: 27px;
+  padding: 0 3px 0 7px;
   border: none;
-  border-radius: 2px;
+  border-radius: 3px;
   background: transparent;
-  gap: 0;
-  cursor: default;
+  gap: 3px;
+  cursor: pointer;
   overflow: hidden;
 }
 
@@ -338,11 +380,11 @@
   order: 3;
   flex-shrink: 0;
   font-family: var(--font-monospace);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
-  width: 20px;
+  width: 18px;
   text-align: center;
-  margin-left: 4px;
+  margin-left: 1px;
 }
 
 .vlg-change-state-staged    { color: var(--color-green); }
@@ -354,14 +396,18 @@
 .vlg-change-path {
   order: 1;
   flex: 1;
-  font-family: var(--font-monospace);
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-family: var(--font-interface);
   font-size: 13px;
+  line-height: 1;
   color: var(--text-normal);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   min-width: 0;
-  padding: 0 6px;
+  padding: 0;
 }
 
 /* Icon button — used for row actions and section header actions */
@@ -399,11 +445,13 @@
 .vlg-change-actions {
   order: 2;
   display: flex;
-  gap: 1px;
+  gap: 0;
   flex-shrink: 0;
   opacity: 0;
   pointer-events: none;
   transition: opacity 80ms;
+  padding-left: 2px;
+  background: linear-gradient(90deg, transparent, var(--background-modifier-hover) 10px);
 }
 
 .vlg-change-row:hover .vlg-change-actions {
@@ -434,20 +482,21 @@
 .vlg-commit-area {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  margin-bottom: 6px;
+  gap: 5px;
+  margin: 0 2px 9px;
 }
 
 .vlg-commit-input {
   width: 100%;
   min-height: 52px;
   max-height: 120px;
-  resize: vertical;
-  padding: 6px 8px;
+  resize: none;
+  overflow-y: auto;
+  padding: 7px 8px;
   font-size: 12px;
   font-family: var(--font-text);
-  line-height: 1.5;
-  border-radius: 3px;
+  line-height: 1.45;
+  border-radius: 4px;
   border: 1px solid var(--background-modifier-border);
   background: var(--background-primary);
   color: var(--text-normal);
@@ -466,11 +515,12 @@
 
 .vlg-commit-btn {
   width: 100%;
-  padding: 6px 12px;
+  min-height: 28px;
+  padding: 5px 10px;
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 600;
   text-align: center;
-  border-radius: 3px;
+  border-radius: 4px;
   border: 1px solid transparent;
   background: var(--interactive-accent);
   color: var(--text-on-accent);
@@ -680,39 +730,6 @@
   pointer-events: none;
 }
 
-.vlg-panel-title {
-  min-height: 24px;
-  display: flex;
-  align-items: center;
-  margin: 0;
-  padding: 0 7px;
-  font-size: 10px;
-  font-weight: 650;
-  letter-spacing: 0.09em;
-  color: var(--text-faint);
-}
-
-.vlg-sc-header {
-  gap: 3px;
-  padding: 0 2px 7px;
-  margin-bottom: 7px;
-}
-
-.vlg-headline-row {
-  min-height: 28px;
-  padding: 0 4px 0 7px;
-  border-radius: 4px;
-  background: var(--background-secondary);
-}
-
-.vlg-repo-headline {
-  padding: 0;
-  font-family: var(--font-interface);
-  font-size: 12px;
-  font-weight: 550;
-  color: var(--text-normal);
-}
-
 .vlg-switch-repo-btn,
 .vlg-sc-actions .vlg-icon-btn {
   display: inline-flex;
@@ -728,18 +745,6 @@
 .vlg-sc-actions .vlg-icon-btn svg {
   width: 14px;
   height: 14px;
-}
-
-.vlg-sc-actions {
-  min-height: 26px;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 1px;
-  padding: 1px 2px 0;
-}
-
-.vlg-sc-actions button {
-  color: var(--text-muted);
 }
 
 .vlg-state-banner {
@@ -804,71 +809,12 @@
   height: 12px;
 }
 
-.vlg-commit-area {
-  gap: 5px;
-  margin: 0 2px 9px;
-}
-
-.vlg-commit-input {
-  min-height: 52px;
-  padding: 7px 8px;
-  border-radius: 4px;
-  line-height: 1.45;
-  resize: none;
-  overflow-y: auto;
-}
-
-.vlg-commit-btn {
-  min-height: 28px;
-  padding: 5px 10px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 600;
-}
-
 .vlg-commit-hint {
   min-height: 14px;
   padding: 0 2px;
   color: var(--text-faint);
   font-size: 10px;
   line-height: 1.4;
-}
-
-.vlg-sc-stats {
-  min-height: 18px;
-  margin: 0 2px 5px;
-  padding: 0 5px;
-  font-variant-numeric: tabular-nums;
-  line-height: 18px;
-  color: var(--text-faint);
-}
-
-.vlg-change-section {
-  margin-bottom: 6px;
-}
-
-.vlg-change-section-head {
-  position: sticky;
-  top: -7px;
-  z-index: 2;
-  height: 25px;
-  padding: 0 3px;
-  margin: 0;
-  border-radius: 0;
-  border-top: 1px solid var(--background-modifier-border);
-  border-bottom: 1px solid color-mix(in srgb, var(--background-modifier-border) 65%, transparent);
-  background: color-mix(in srgb, var(--background-secondary) 94%, transparent);
-  backdrop-filter: blur(8px);
-}
-
-.vlg-change-section-toggle {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  min-width: 0;
-  height: 100%;
-  font-size: 10px;
-  letter-spacing: 0.07em;
 }
 
 .vlg-section-chevron {
@@ -901,40 +847,10 @@
   letter-spacing: 0;
 }
 
-.vlg-change-section-actions {
-  gap: 1px;
-}
-
-.vlg-change-section-actions button {
-  width: 20px;
-  height: 20px;
-  padding: 0;
-  border: 0;
-}
-
-.vlg-change-row {
-  position: relative;
-  min-height: 27px;
-  height: 27px;
-  padding: 0 3px 0 7px;
-  gap: 3px;
-  border-radius: 3px;
-  cursor: pointer;
-}
-
 .vlg-change-row:focus-visible {
   outline: 1px solid var(--interactive-accent);
   outline-offset: -1px;
   background: var(--background-modifier-hover);
-}
-
-.vlg-change-path {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-  padding: 0;
-  font-family: var(--font-interface);
-  line-height: 1;
 }
 
 .vlg-change-name {
@@ -956,18 +872,6 @@
   white-space: nowrap;
   color: var(--text-faint);
   font-size: 10px;
-}
-
-.vlg-change-state {
-  width: 18px;
-  margin-left: 1px;
-  font-size: 11px;
-}
-
-.vlg-change-actions {
-  gap: 0;
-  padding-left: 2px;
-  background: linear-gradient(90deg, transparent, var(--background-modifier-hover) 10px);
 }
 
 .vlg-change-row:hover .vlg-change-actions,
@@ -1037,41 +941,12 @@
   font-size: 11px;
 }
 
-.vlg-no-repo {
-  align-items: stretch;
-  padding: 30px 10px 10px;
-}
-
 .vlg-no-repo > .vlg-empty-icon {
   align-self: center;
 }
 
-.vlg-no-repo-msg {
-  max-width: 260px;
-  margin: 0 auto 8px;
-  text-align: center;
-  line-height: 1.45;
-}
-
 .vlg-empty-icon.is-loading {
   animation: vlg-spin 900ms linear infinite;
-}
-
-.vlg-no-repo-actions {
-  justify-content: center;
-  margin-top: 2px;
-}
-
-.vlg-diff {
-  max-height: 70vh;
-  padding: 12px;
-  border-radius: 4px;
-  white-space: pre;
-  overflow: auto;
-  font-family: var(--font-monospace);
-  font-size: 11px;
-  line-height: 1.55;
-  tab-size: 4;
 }
 
 .vlg-conflict-block-list {

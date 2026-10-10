@@ -54,6 +54,7 @@ interface GitPluginSettings {
   autoRefreshSeconds: number;
   gitTimeoutSeconds: number;
   maxVisibleChanges: number;
+  extraRepos: string[];
   collapsedSections: Record<string, boolean>;
 }
 
@@ -62,6 +63,7 @@ const DEFAULT_SETTINGS: GitPluginSettings = {
   autoRefreshSeconds: 5,
   gitTimeoutSeconds: 30,
   maxVisibleChanges: 250,
+  extraRepos: [],
   collapsedSections: {
     "Merge Changes": false,
     "Staged Changes": false,
@@ -112,6 +114,21 @@ interface SourceControlState {
   error: string | null;
 }
 
+function updateCommitButtonState(
+  button: HTMLButtonElement | null,
+  input: HTMLTextAreaElement | null,
+  state: SourceControlState
+): void {
+  if (!button) return;
+  const status = state.snapshot?.status;
+  button.setText(status?.staged ? `Commit (${status.staged})` : "Commit");
+  button.disabled =
+    (input?.value.trim().length ?? 0) === 0 ||
+    !status?.staged ||
+    status.conflicts > 0 ||
+    Boolean(state.operation);
+}
+
 interface ConflictBlock {
   ours: string;
   base: string;
@@ -154,6 +171,11 @@ function parseDiffHunks(diffOutput: string): { patchHeader: string; hunks: DiffH
 
 function normalizeToPosix(input: string): string {
   return input.split(path.sep).join(path.posix.sep);
+}
+
+function isWithinRoot(root: string, candidate: string): boolean {
+  const relative = path.relative(root, candidate);
+  return relative !== ".." && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative);
 }
 
 function toLiteralPathspec(filePath: string): string {
@@ -954,14 +976,7 @@ class SourceControlView extends ItemView {
 
       ta.addEventListener("input", () => {
         this.commitDrafts.set(snapshot.repoRoot, ta.value);
-        if (this.commitBtnEl) {
-          const current = this.plugin.getSourceControlState();
-          this.commitBtnEl.disabled =
-            ta.value.trim().length === 0 ||
-            (current.snapshot?.status.staged ?? 0) === 0 ||
-            (current.snapshot?.status.conflicts ?? 0) > 0 ||
-            Boolean(current.operation);
-        }
+        updateCommitButtonState(this.commitBtnEl, ta, this.plugin.getSourceControlState());
       });
 
       ta.addEventListener("keydown", (e: KeyboardEvent) => {
@@ -999,15 +1014,7 @@ class SourceControlView extends ItemView {
     if (this.headlineEl) {
       this.headlineEl.setText(`${snapshot.repoName}  /  ${snapshot.status.branch}`);
     }
-    if (this.commitBtnEl) {
-      const hasMessage = (this.commitInputEl?.value.trim().length ?? 0) > 0;
-      this.commitBtnEl.setText(snapshot.status.staged > 0 ? `Commit (${snapshot.status.staged})` : "Commit");
-      this.commitBtnEl.disabled =
-        !hasMessage ||
-        snapshot.status.staged === 0 ||
-        snapshot.status.conflicts > 0 ||
-        Boolean(state.operation);
-    }
+    updateCommitButtonState(this.commitBtnEl, this.commitInputEl, state);
     if (this.commitHintEl) {
       this.commitHintEl.setText(
         snapshot.status.conflicts > 0
@@ -1330,6 +1337,7 @@ class VsCodeLikeGitPlugin extends Plugin {
   private refreshTimerId: number | null = null;
   private refreshDebounceId: number | null = null;
   private repoRegistry: Set<string> = new Set();
+  private extraRepoRoots: Set<string> = new Set();
   private manualRepoRoot: string | null = null;
   private sourceControlState: SourceControlState = {
     snapshot: null,
@@ -1962,7 +1970,19 @@ class VsCodeLikeGitPlugin extends Plugin {
       return null;
     }
 
-    const absFilePath = this.getAbsolutePath(this.currentFile.path);
+    let absFilePath = this.getAbsolutePath(this.currentFile.path);
+    if (this.extraRepoRoots.has(repoRoot)) {
+      try {
+        absFilePath = await fs.realpath(absFilePath);
+      } catch {
+        new Notice("Current file is not available on disk");
+        return null;
+      }
+    }
+    if (!isWithinRoot(repoRoot, absFilePath)) {
+      new Notice("Current file is outside the active repository");
+      return null;
+    }
     const repoRelativeFile = normalizeToPosix(path.relative(repoRoot, absFilePath));
 
     return { repoRoot, repoRelativeFile };
@@ -2136,11 +2156,30 @@ class VsCodeLikeGitPlugin extends Plugin {
 
     const basePath = adapter.getBasePath();
     const absolutePath = this.getAbsolutePath(this.currentFile.path);
+    let extraRepoRoot: string | null = null;
+    let linkedOutsideVault = false;
+    if (this.extraRepoRoots.size > 0) {
+      try {
+        const realFilePath = await fs.realpath(absolutePath);
+        const realVaultRoot = await fs.realpath(basePath);
+        extraRepoRoot = [...this.extraRepoRoots]
+          .filter((root) => isWithinRoot(root, realFilePath))
+          .sort((a, b) => b.length - a.length)[0] ?? null;
+        linkedOutsideVault = !isWithinRoot(realVaultRoot, realFilePath);
+      } catch {
+        // A missing file cannot be matched to an external repository.
+      }
+    }
+    if (extraRepoRoot && linkedOutsideVault) {
+      return extraRepoRoot;
+    }
+
     const repoRoot = await this.findNearestRepo(basePath, path.dirname(absolutePath));
     if (repoRoot) {
       this.repoRegistry.add(repoRoot);
+      return repoRoot;
     }
-    return repoRoot;
+    return extraRepoRoot;
   }
 
   private async resolveActiveRepoRoot(): Promise<string | null> {
@@ -2318,27 +2357,59 @@ class VsCodeLikeGitPlugin extends Plugin {
   }
 
   async rebuildIndex(): Promise<void> {
-    await this.rebuildRepoRegistry();
+    const invalidPaths = await this.rebuildRepoRegistry();
     await this.refreshContext(true);
+    if (invalidPaths.length > 0) {
+      new Notice(`Skipped extra repositories:\n${invalidPaths.join("\n")}`, 10000);
+    }
   }
 
-  private async rebuildRepoRegistry(): Promise<void> {
+  private async rebuildRepoRegistry(): Promise<string[]> {
     const adapter = this.app.vault.adapter;
     if (!(adapter instanceof FileSystemAdapter)) {
-      return;
+      return [];
     }
 
     const basePath = adapter.getBasePath();
     const nextRegistry = await this.discoverRepositories(basePath);
+    const nextExtraRoots = new Set<string>();
+    const invalidPaths: string[] = [];
 
-    if (this.currentFile) {
-      const currentRepo = await this.resolveRepoRootForCurrentFile();
-      if (currentRepo) {
-        nextRegistry.add(currentRepo);
+    for (const configuredPath of this.settings.extraRepos) {
+      if (!path.isAbsolute(configuredPath)) {
+        invalidPaths.push(`${configuredPath}: enter an absolute path`);
+        continue;
+      }
+      try {
+        const repoRoot = await fs.realpath(configuredPath);
+        if (!(await fs.stat(repoRoot)).isDirectory()) {
+          throw new Error("not a directory");
+        }
+        const reportedRoot = (await this.runGit(["rev-parse", "--show-toplevel"], repoRoot)).trim();
+        if (!reportedRoot || await fs.realpath(reportedRoot) !== repoRoot) {
+          throw new Error("path is not a Git worktree root");
+        }
+        nextRegistry.add(repoRoot);
+        nextExtraRoots.add(repoRoot);
+      } catch (error) {
+        invalidPaths.push(`${configuredPath}: ${this.toErrorMessage(error)}`);
       }
     }
 
     this.repoRegistry = nextRegistry;
+    this.extraRepoRoots = nextExtraRoots;
+
+    if (this.currentFile) {
+      const currentRepo = await this.resolveRepoRootForCurrentFile();
+      if (currentRepo) {
+        this.repoRegistry.add(currentRepo);
+      }
+    }
+
+    if (this.manualRepoRoot && !this.repoRegistry.has(this.manualRepoRoot)) {
+      this.manualRepoRoot = null;
+    }
+    return invalidPaths;
   }
 
   private async discoverRepositories(basePath: string): Promise<Set<string>> {
@@ -2459,6 +2530,7 @@ class VsCodeLikeGitPlugin extends Plugin {
     }
 
     const savedGitBinary = loaded["gitBinary"];
+    const savedExtraRepos = loaded["extraRepos"];
     return {
       gitBinary: typeof savedGitBinary === "string" && savedGitBinary.trim()
         ? savedGitBinary.trim()
@@ -2466,6 +2538,10 @@ class VsCodeLikeGitPlugin extends Plugin {
       autoRefreshSeconds: readNumber("autoRefreshSeconds", DEFAULT_SETTINGS.autoRefreshSeconds, 2, 30),
       gitTimeoutSeconds: readNumber("gitTimeoutSeconds", DEFAULT_SETTINGS.gitTimeoutSeconds, 5, 120),
       maxVisibleChanges: readNumber("maxVisibleChanges", DEFAULT_SETTINGS.maxVisibleChanges, 50, 1000),
+      extraRepos: Array.isArray(savedExtraRepos)
+        ? savedExtraRepos.filter((entry): entry is string => typeof entry === "string")
+          .map((entry) => entry.trim()).filter(Boolean)
+        : [],
       collapsedSections
     };
   }
@@ -2475,9 +2551,9 @@ class VsCodeLikeGitPlugin extends Plugin {
     this.settings = this.parseSettings(loaded);
   }
 
-  async saveSettings(): Promise<void> {
+  async saveSettings(resetRefreshTimer = true): Promise<void> {
     await this.saveData(this.settings);
-    this.resetAutoRefresh();
+    if (resetRefreshTimer) this.resetAutoRefresh();
   }
 }
 
@@ -2510,6 +2586,11 @@ class GitSettingsTab extends PluginSettingTab {
         name: "Changes per section",
         desc: "Initial number of file rows rendered in large repositories",
         control: { type: "slider", key: "maxVisibleChanges", min: 50, max: 1000, step: 50 }
+      },
+      {
+        name: "Extra repository roots",
+        desc: "One absolute Git worktree root per line, including paths outside the vault. Rebuild the repository index after editing.",
+        control: { type: "text", key: "extraRepos" }
       }
     ];
   }
@@ -2520,6 +2601,7 @@ class GitSettingsTab extends PluginSettingTab {
       case "autoRefreshSeconds": return this.plugin.settings.autoRefreshSeconds;
       case "gitTimeoutSeconds": return this.plugin.settings.gitTimeoutSeconds;
       case "maxVisibleChanges": return this.plugin.settings.maxVisibleChanges;
+      case "extraRepos": return this.plugin.settings.extraRepos.join("\n");
       default: return undefined;
     }
   }
@@ -2542,10 +2624,14 @@ class GitSettingsTab extends PluginSettingTab {
         if (typeof value !== "number") return;
         this.plugin.settings.maxVisibleChanges = Math.min(1000, Math.max(50, value));
         break;
+      case "extraRepos":
+        if (typeof value !== "string") return;
+        this.plugin.settings.extraRepos = value.split(/\r?\n/).map((entry) => entry.trim()).filter(Boolean);
+        break;
       default:
         return;
     }
-    await this.plugin.saveSettings();
+    await this.plugin.saveSettings(key !== "extraRepos");
   }
 
   display(): void {
@@ -2606,6 +2692,22 @@ class GitSettingsTab extends PluginSettingTab {
             await this.plugin.saveSettings();
           })
       );
+
+    new Setting(containerEl)
+      .setName("Extra repository roots")
+      .setDesc("One absolute Git worktree root per line. Git actions can modify files outside the vault. Rebuild the index after editing.")
+      .addTextArea((text) =>
+        text
+          .setPlaceholder("/absolute/path/to/repo")
+          .setValue(this.plugin.settings.extraRepos.join("\n"))
+          .onChange(async (value) => {
+            this.plugin.settings.extraRepos = value.split(/\r?\n/).map((entry) => entry.trim()).filter(Boolean);
+            await this.plugin.saveSettings(false);
+          })
+      )
+      .addButton((button) => button
+        .setButtonText("Rebuild index")
+        .onClick(async () => { await this.plugin.rebuildIndex(); }));
   }
 }
 
