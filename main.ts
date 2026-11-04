@@ -2,6 +2,7 @@ import {
   App,
   FileSystemAdapter,
   ItemView,
+  Menu,
   Modal,
   Notice,
   Platform,
@@ -65,6 +66,9 @@ const DEFAULT_SETTINGS: GitPluginSettings = {
   maxVisibleChanges: 250,
   extraRepos: [],
   collapsedSections: {
+    "Repositories": false,
+    "Source Control Changes": false,
+    "Graph": false,
     "Merge Changes": false,
     "Staged Changes": false,
     "Changes": false,
@@ -808,6 +812,16 @@ class SourceControlView extends ItemView {
   private commitHintEl: HTMLElement | null = null;
   private commitInputEl: HTMLTextAreaElement | null = null;
   private commitBtnEl: HTMLButtonElement | null = null;
+  private commitMoreEl: HTMLButtonElement | null = null;
+  private changesCountEl: HTMLElement | null = null;
+  private graphEl: HTMLElement | null = null;
+  private graphScope: "all" | "current" = "all";
+  private graphLimit = 80;
+  private graphRequestId = 0;
+  private graphCacheKey = "";
+  private graphRenderedKey = "";
+  private graphRaw: string | null = null;
+  private graphTimerId: number | null = null;
   private commitDrafts = new Map<string, string>();
   private sectionRenderLimits = new Map<string, number>();
 
@@ -832,10 +846,23 @@ class SourceControlView extends ItemView {
     this.containerEl.addClass("vlg-sc-view");
     this.initializeSectionCollapseState();
     await this.render();
+    this.graphTimerId = window.setInterval(() => {
+      const repoRoot = this.plugin.getSourceControlState().snapshot?.repoRoot;
+      if (repoRoot && !this.collapsedSections.get("Graph")) {
+        void this.loadGraph(repoRoot, true);
+      }
+    }, 30000);
   }
 
   async onClose(): Promise<void> {
-    this.containerEl.empty();
+    if (this.graphTimerId !== null) window.clearInterval(this.graphTimerId);
+    this.graphTimerId = null;
+    this.graphRequestId += 1;
+    this.graphEl = null;
+    this.graphRaw = null;
+    this.graphRenderedKey = "";
+    this.lastRenderKey = "";
+    this.contentEl.empty();
   }
 
   async render(): Promise<void> {
@@ -847,11 +874,11 @@ class SourceControlView extends ItemView {
     if (key === this.lastRenderKey) return;
     this.lastRenderKey = key;
 
-    const wrap = this.containerEl.children[1] as HTMLElement;
+    const wrap = this.contentEl;
 
     // ── First render or repo changed: build the static shell ──────────────
     const shellKey = snapshot
-      ? snapshot.repoRoot
+      ? snapshot.repoRoot + ":" + this.plugin.getKnownRepos().join("|")
       : `__empty__:${state.loading}:${Boolean(state.error)}:${this.plugin.getKnownRepos().join("|")}`;
     const prevShellKey = wrap.dataset["shellKey"] ?? "";
 
@@ -864,12 +891,26 @@ class SourceControlView extends ItemView {
       this.commitHintEl = null;
       this.commitInputEl = null;
       this.commitBtnEl = null;
+      this.commitMoreEl = null;
+      this.changesCountEl = null;
+      this.graphEl = null;
+      this.graphCacheKey = "";
+      this.graphRenderedKey = "";
+      this.graphRaw = null;
+      this.graphRequestId += 1;
       this.sectionRenderLimits.clear();
       wrap.dataset["shellKey"] = shellKey;
 
+      const guard = async (label: string, action: () => Promise<void>): Promise<void> => {
+        try {
+          await action();
+        } catch (error) {
+          this.plugin.reportSourceControlError(label, error);
+        }
+      };
+      const repositories = this.createWorkbenchSection(wrap, "REPOSITORIES", "Repositories");
       if (!snapshot) {
-        wrap.createEl("h4", { text: "SOURCE CONTROL", cls: "vlg-panel-title" });
-        const emptyWrap = wrap.createDiv({ cls: "vlg-no-repo" });
+        const emptyWrap = repositories.body.createDiv({ cls: "vlg-no-repo" });
         const emptyIcon = emptyWrap.createDiv({ cls: state.loading ? "vlg-empty-icon is-loading" : "vlg-empty-icon" });
         setIcon(emptyIcon, state.loading ? "refresh-cw" : state.error ? "circle-alert" : "git-branch");
         emptyWrap.createEl("p", {
@@ -884,7 +925,8 @@ class SourceControlView extends ItemView {
           emptyWrap.createEl("p", { text: "Known repositories:", cls: "vlg-no-repo-label" });
           const repoList = emptyWrap.createDiv({ cls: "vlg-no-repo-list" });
           for (const repo of knownRepos) {
-            const item = repoList.createDiv({ cls: "vlg-no-repo-item" });
+            const item = repoList.createEl("button", { cls: "vlg-no-repo-item" });
+            item.setAttr("title", repo);
             setIcon(item.createSpan({ cls: "vlg-no-repo-icon" }), "git-branch");
             item.createSpan({ text: path.basename(repo), cls: "vlg-no-repo-name" });
             item.createSpan({ text: repo, cls: "vlg-no-repo-path" });
@@ -894,7 +936,8 @@ class SourceControlView extends ItemView {
           }
         }
 
-        const emptyActions = emptyWrap.createDiv({ cls: "vlg-no-repo-actions" });
+        const changes = this.createWorkbenchSection(wrap, "CHANGES", "Source Control Changes");
+        const emptyActions = changes.body.createDiv({ cls: "vlg-no-repo-actions" });
         const refreshBtn = emptyActions.createEl("button", { text: "Refresh" });
         refreshBtn.onclick = async () => {
           await this.plugin.refreshContext(true);
@@ -903,80 +946,117 @@ class SourceControlView extends ItemView {
         rebuildBtn.onclick = async () => {
           await this.plugin.rebuildIndex();
         };
+        const graph = this.createWorkbenchSection(wrap, "GRAPH", "Graph");
+        graph.body.createDiv({ text: "Select a repository to see its history.", cls: "vlg-graph-empty" });
         return;
       }
 
-      const panelTitle = wrap.createEl("h4", {
-        text: "SOURCE CONTROL",
-        cls: "vlg-panel-title"
-      });
-      panelTitle.setAttr("aria-label", "Source Control");
-
-      const header = wrap.createDiv({ cls: "vlg-sc-header" });
+      const header = repositories.body.createDiv({ cls: "vlg-sc-header" });
       const headlineRow = header.createDiv({ cls: "vlg-headline-row" });
-      this.headlineEl = headlineRow.createEl("div", {
-        text: `${snapshot.repoName}  /  ${snapshot.status.branch}`,
-        cls: "vlg-repo-headline"
-      });
-      const switchBtn = headlineRow.createEl("button");
-      switchBtn.addClass("vlg-switch-repo-btn");
-      switchBtn.setAttr("title", "Switch repository");
-      switchBtn.setAttr("aria-label", "Switch repository");
-      setIcon(switchBtn, "chevrons-up-down");
+      const repoSelect = headlineRow.createEl("button", { cls: "vlg-repo-select" });
+      repoSelect.setAttr("title", snapshot.repoRoot);
+      repoSelect.setAttr("aria-label", "Switch repository: " + snapshot.repoName);
+      setIcon(repoSelect.createSpan({ cls: "vlg-repo-icon" }), "hard-drive");
+      repoSelect.createSpan({ text: snapshot.repoName, cls: "vlg-repo-name" });
+      const branch = repoSelect.createSpan({ cls: "vlg-repo-branch" });
+      setIcon(branch.createSpan({ cls: "vlg-repo-branch-icon" }), "git-branch");
+      this.headlineEl = branch.createSpan({ text: snapshot.status.branch, cls: "vlg-repo-branch-name" });
+      repoSelect.onclick = async () => { await guard("Switch repository", () => this.plugin.switchRepositoryContext()); };
 
-      const actions = header.createDiv({ cls: "vlg-sc-actions" });
+      const actions = headlineRow.createDiv({ cls: "vlg-sc-actions" });
       const makeAction = (icon: string, title: string): HTMLButtonElement => {
-          const button = actions.createEl("button");
+        const button = actions.createEl("button");
         button.addClass("vlg-icon-btn");
         button.setAttr("title", title);
         button.setAttr("aria-label", title);
         setIcon(button, icon);
         return button;
       };
-      const guard = async (label: string, action: () => Promise<void>): Promise<void> => {
-        try {
-          await action();
-        } catch (error) {
-          this.plugin.reportSourceControlError(label, error);
-        }
+      const remoteBtn = makeAction("refresh-cw", "Pull or push");
+      remoteBtn.onclick = (event) => {
+        const menu = new Menu();
+        menu.addItem((item) => item.setTitle("Pull").setIcon("arrow-down-to-line")
+          .onClick(() => { void guard("Pull", () => this.plugin.pullCurrentRepo()); }));
+        menu.addItem((item) => item.setTitle("Push").setIcon("arrow-up-from-line")
+          .onClick(() => { void guard("Push", () => this.plugin.pushCurrentRepo()); }));
+        menu.showAtMouseEvent(event);
       };
-      const refreshBtn = makeAction("refresh-cw", "Refresh source control");
-      const pullBtn = makeAction("arrow-down-to-line", "Pull");
-      const pushBtn = makeAction("arrow-up-from-line", "Push");
-      const branchBtn = makeAction("git-branch", "Checkout or create branch");
-      const stashBtn = makeAction("archive", "Stash changes");
-      const historyBtn = makeAction("history", "Commit history");
-      const undoBtn = makeAction("undo-2", "Undo last commit (keep changes staged)");
-
-      refreshBtn.onclick = async () => { await guard("Refresh", () => this.plugin.refreshContext(true)); };
-      undoBtn.onclick    = async () => { await guard("Undo commit", () => this.plugin.undoLastCommit()); };
-      pullBtn.onclick    = async () => { await guard("Pull", () => this.plugin.pullCurrentRepo()); };
-      pushBtn.onclick    = async () => { await guard("Push", () => this.plugin.pushCurrentRepo()); };
-      stashBtn.onclick   = async () => { await guard("Open stash", () => this.plugin.openStashModal()); };
-      historyBtn.onclick = async () => { await guard("Open history", () => this.plugin.openHistoryModal()); };
-      branchBtn.onclick  = async () => { await guard("Open branches", () => this.plugin.checkoutOrCreateBranch()); };
-      switchBtn.onclick  = async () => { await guard("Switch repository", () => this.plugin.switchRepositoryContext()); };
+      const repoMore = makeAction("ellipsis", "Repository actions");
+      repoMore.onclick = (event) => {
+        const menu = new Menu();
+        menu.addItem((item) => item.setTitle("Refresh").setIcon("refresh-cw")
+          .onClick(() => { void guard("Refresh", () => this.plugin.refreshContext(true)); }));
+        menu.addItem((item) => item.setTitle("Switch repository").setIcon("git-branch")
+          .onClick(() => { void guard("Switch repository", () => this.plugin.switchRepositoryContext()); }));
+        menu.addSeparator();
+        menu.addItem((item) => item.setTitle("Checkout or create branch").setIcon("git-branch")
+          .onClick(() => { void guard("Open branches", () => this.plugin.checkoutOrCreateBranch()); }));
+        menu.addItem((item) => item.setTitle("Stash changes").setIcon("archive")
+          .onClick(() => { void guard("Open stash", () => this.plugin.openStashModal()); }));
+        menu.addItem((item) => item.setTitle("Commit history").setIcon("history")
+          .onClick(() => { void guard("Open history", () => this.plugin.openHistoryModal()); }));
+        menu.addItem((item) => item.setTitle("Undo last commit").setIcon("undo-2")
+          .onClick(() => { void guard("Undo commit", () => this.plugin.undoLastCommit()); }));
+        menu.showAtMouseEvent(event);
+      };
+      for (const repo of this.plugin.getKnownRepos()) {
+        if (repo === snapshot.repoRoot) continue;
+        const other = repositories.body.createEl("button", { cls: "vlg-repo-other" });
+        other.setAttr("title", repo);
+        other.setAttr("aria-label", "Switch to repository " + repo);
+        setIcon(other.createSpan({ cls: "vlg-repo-icon" }), "hard-drive");
+        other.createSpan({ text: path.basename(repo), cls: "vlg-repo-other-name" });
+        other.createSpan({ text: path.dirname(repo), cls: "vlg-repo-other-path" });
+        other.onclick = async () => { await guard("Switch repository", () => this.plugin.selectRepo(repo)); };
+      }
 
       this.bannerEl = wrap.createDiv({ cls: "vlg-state-banner" });
 
-      // ── Inline commit area (VS Code style) ──────────────────────────────
-      const commitArea = wrap.createDiv({ cls: "vlg-commit-area" });
-        const ta = commitArea.createEl("textarea");
-      ta.placeholder = "Message (Ctrl+Enter to commit)";
+      const changes = this.createWorkbenchSection(wrap, "CHANGES", "Source Control Changes");
+      this.changesCountEl = changes.actions.createSpan({ cls: "vlg-workbench-count" });
+      const changesRefresh = changes.actions.createEl("button", { cls: "vlg-workbench-icon" });
+      changesRefresh.setAttr("aria-label", "Refresh changes");
+      changesRefresh.setAttr("title", "Refresh changes");
+      setIcon(changesRefresh, "refresh-cw");
+      changesRefresh.onclick = async () => { await guard("Refresh", () => this.plugin.refreshContext(true)); };
+      const changesMore = changes.actions.createEl("button", { cls: "vlg-workbench-icon" });
+      changesMore.setAttr("aria-label", "Changes actions");
+      changesMore.setAttr("title", "Changes actions");
+      setIcon(changesMore, "ellipsis");
+      changesMore.onclick = (event) => {
+        const menu = new Menu();
+        menu.addItem((item) => item.setTitle("Stash changes").setIcon("archive")
+          .onClick(() => { void guard("Open stash", () => this.plugin.openStashModal()); }));
+        menu.addItem((item) => item.setTitle("Undo last commit").setIcon("undo-2")
+          .onClick(() => { void guard("Undo commit", () => this.plugin.undoLastCommit()); }));
+        menu.showAtMouseEvent(event);
+      };
+
+      const commitArea = changes.body.createDiv({ cls: "vlg-commit-area" });
+      const ta = commitArea.createEl("textarea");
+      ta.placeholder = Platform.isMacOS ? "Message (Cmd+Enter to commit)" : "Message (Ctrl+Enter to commit)";
       ta.addClass("vlg-commit-input");
       ta.value = this.commitDrafts.get(snapshot.repoRoot) ?? "";
       this.commitInputEl = ta;
 
-        const commitBtn = commitArea.createEl("button");
+      const commitControls = commitArea.createDiv({ cls: "vlg-commit-controls" });
+      const commitBtn = commitControls.createEl("button");
       commitBtn.addClass("vlg-commit-btn");
       commitBtn.disabled = true;
       this.commitBtnEl = commitBtn;
+      const commitMore = commitControls.createEl("button", { cls: "vlg-commit-more" });
+      commitMore.disabled = true;
+      commitMore.setAttr("aria-label", "Commit options");
+      commitMore.setAttr("title", "Commit options");
+      setIcon(commitMore, "chevron-down");
+      this.commitMoreEl = commitMore;
 
       this.commitHintEl = commitArea.createDiv({ cls: "vlg-commit-hint" });
 
       ta.addEventListener("input", () => {
         this.commitDrafts.set(snapshot.repoRoot, ta.value);
         updateCommitButtonState(this.commitBtnEl, ta, this.plugin.getSourceControlState());
+        commitMore.disabled = commitBtn.disabled;
       });
 
       ta.addEventListener("keydown", (e: KeyboardEvent) => {
@@ -986,7 +1066,7 @@ class SourceControlView extends ItemView {
         }
       });
 
-      commitBtn.onclick = async () => {
+      const commitDraft = async (pushAfter: boolean): Promise<void> => {
         const msg = ta.value.trim();
         if (!msg) { new Notice("Enter a commit message"); return; }
         const snap = await this.plugin.getActiveRepoSnapshot();
@@ -995,12 +1075,65 @@ class SourceControlView extends ItemView {
         if (committed) {
           ta.value = "";
           this.commitDrafts.delete(snap.repoRoot);
-          if (this.commitBtnEl) this.commitBtnEl.disabled = true;
+          commitBtn.disabled = true;
+          commitMore.disabled = true;
+          if (pushAfter) await this.plugin.pushCurrentRepo();
         }
       };
+      commitBtn.onclick = async () => { await guard("Commit", () => commitDraft(false)); };
+      commitMore.onclick = (event) => {
+        const menu = new Menu();
+        menu.addItem((item) => item.setTitle("Commit")
+          .onClick(() => { void guard("Commit", () => commitDraft(false)); }));
+        menu.addItem((item) => item.setTitle("Commit and push").setIcon("arrow-up-from-line")
+          .onClick(() => { void guard("Commit and push", () => commitDraft(true)); }));
+        menu.showAtMouseEvent(event);
+      };
 
-      this.statsEl = wrap.createEl("p", { cls: "vlg-sc-stats" });
-      this.bodyEl  = wrap.createDiv({ cls: "vlg-sc-body" });
+      this.statsEl = changes.body.createEl("p", { cls: "vlg-sc-stats" });
+      this.bodyEl = changes.body.createDiv({ cls: "vlg-sc-body" });
+
+      const graph = this.createWorkbenchSection(wrap, "GRAPH", "Graph");
+      const scopeBtn = graph.actions.createEl("button", { cls: "vlg-graph-scope" });
+      scopeBtn.setText(this.graphScope === "all" ? "All" : "Current");
+      scopeBtn.setAttr("aria-label", "Graph branch scope");
+      scopeBtn.onclick = (event) => {
+        const menu = new Menu();
+        menu.addItem((item) => item.setTitle("All branches").setChecked(this.graphScope === "all")
+          .onClick(() => {
+            this.graphScope = "all";
+            scopeBtn.setText("All");
+            void this.loadGraph(snapshot.repoRoot, true);
+          }));
+        menu.addItem((item) => item.setTitle("Current branch").setChecked(this.graphScope === "current")
+          .onClick(() => {
+            this.graphScope = "current";
+            scopeBtn.setText("Current");
+            void this.loadGraph(snapshot.repoRoot, true);
+          }));
+        menu.showAtMouseEvent(event);
+      };
+      const graphRefresh = graph.actions.createEl("button", { cls: "vlg-workbench-icon" });
+      graphRefresh.setAttr("aria-label", "Refresh graph");
+      graphRefresh.setAttr("title", "Refresh graph");
+      setIcon(graphRefresh, "refresh-cw");
+      graphRefresh.onclick = () => { void this.loadGraph(snapshot.repoRoot, true); };
+      const graphMore = graph.actions.createEl("button", { cls: "vlg-workbench-icon" });
+      graphMore.setAttr("aria-label", "Graph actions");
+      graphMore.setAttr("title", "Graph actions");
+      setIcon(graphMore, "ellipsis");
+      graphMore.onclick = (event) => {
+        const menu = new Menu();
+        menu.addItem((item) => item.setTitle("Load more commits").setIcon("list-plus")
+          .onClick(() => {
+            this.graphLimit += 80;
+            void this.loadGraph(snapshot.repoRoot, true);
+          }));
+        menu.addItem((item) => item.setTitle("Open commit history").setIcon("history")
+          .onClick(() => { void guard("Open history", () => this.plugin.openHistoryModal()); }));
+        menu.showAtMouseEvent(event);
+      };
+      this.graphEl = graph.body.createDiv({ cls: "vlg-graph-list" });
     }
 
     if (!snapshot) return;
@@ -1012,9 +1145,11 @@ class SourceControlView extends ItemView {
 
     // ── Update mutable parts in-place (no flash) ──────────────────────────
     if (this.headlineEl) {
-      this.headlineEl.setText(`${snapshot.repoName}  /  ${snapshot.status.branch}`);
+      this.headlineEl.setText(snapshot.status.branch);
     }
     updateCommitButtonState(this.commitBtnEl, this.commitInputEl, state);
+    if (this.commitMoreEl && this.commitBtnEl) this.commitMoreEl.disabled = this.commitBtnEl.disabled;
+    if (this.changesCountEl) this.changesCountEl.setText(String(snapshot.changes.length));
     if (this.commitHintEl) {
       this.commitHintEl.setText(
         snapshot.status.conflicts > 0
@@ -1026,18 +1161,20 @@ class SourceControlView extends ItemView {
     }
     if (this.statsEl) {
       this.statsEl.setText(
-        `${snapshot.status.ahead === 0 && snapshot.status.behind === 0 ? "Synced" : `↑ ${snapshot.status.ahead}  ↓ ${snapshot.status.behind}`}  ·  ${snapshot.changes.length} changed ${snapshot.changes.length === 1 ? "file" : "files"}`
+        String(snapshot.changes.length) + " changed " + (snapshot.changes.length === 1 ? "file" : "files") +
+        (snapshot.status.ahead || snapshot.status.behind
+          ? "  ·  ↑ " + snapshot.status.ahead + "  ↓ " + snapshot.status.behind
+          : "")
       );
     }
+    if (state.operation) this.graphCacheKey = "";
+    else void this.loadGraph(snapshot.repoRoot);
 
     const body = this.bodyEl!;
     body.empty();
 
     if (snapshot.changes.length === 0) {
-      const clean = body.createDiv({ cls: "vlg-clean-state" });
-      setIcon(clean.createDiv({ cls: "vlg-clean-icon" }), "circle-check");
-      clean.createEl("div", { text: "No pending changes", cls: "vlg-clean-title" });
-      clean.createEl("div", { text: "Your working tree is clean.", cls: "vlg-clean-copy" });
+      body.createDiv({ text: "No changes", cls: "vlg-workbench-clean" });
       return;
     }
 
@@ -1053,6 +1190,130 @@ class SourceControlView extends ItemView {
     if (workingChanges.length > 0) this.renderChangeSection(body, snapshot.repoRoot, "Changes", workingChanges);
   }
 
+  private createWorkbenchSection(
+    parent: HTMLElement,
+    label: string,
+    key: string
+  ): { body: HTMLElement; actions: HTMLElement } {
+    const section = parent.createDiv({ cls: "vlg-workbench-section" });
+    section.addClass("vlg-workbench-" + (key === "Source Control Changes" ? "changes" : key.toLowerCase()));
+    const heading = section.createDiv({ cls: "vlg-workbench-section-head" });
+    const toggle = heading.createEl("button", { cls: "vlg-workbench-section-toggle" });
+    const chevron = toggle.createSpan({ cls: "vlg-workbench-chevron" });
+    toggle.createSpan({ text: label });
+    const actions = heading.createDiv({ cls: "vlg-workbench-section-actions" });
+    const body = section.createDiv({ cls: "vlg-workbench-section-body" });
+    const collapsed = this.collapsedSections.get(key) ?? false;
+    setIcon(chevron, collapsed ? "chevron-right" : "chevron-down");
+    toggle.setAttr("aria-expanded", String(!collapsed));
+    body.classList.toggle("is-hidden", collapsed);
+    toggle.onclick = async () => {
+      const next = !(this.collapsedSections.get(key) ?? false);
+      this.collapsedSections.set(key, next);
+      body.classList.toggle("is-hidden", next);
+      toggle.setAttr("aria-expanded", String(!next));
+      setIcon(chevron, next ? "chevron-right" : "chevron-down");
+      await this.plugin.setSectionCollapsed(key, next);
+      if (key === "Graph") {
+        this.graphCacheKey = "";
+        if (next) {
+          this.graphRequestId += 1;
+        } else {
+          const repoRoot = this.plugin.getSourceControlState().snapshot?.repoRoot;
+          if (repoRoot) void this.loadGraph(repoRoot, true);
+        }
+      }
+    };
+    return { body, actions };
+  }
+
+  private async loadGraph(repoRoot: string, force = false): Promise<void> {
+    const list = this.graphEl;
+    if (!list || this.collapsedSections.get("Graph")) return;
+    const branch = this.plugin.getSourceControlState().snapshot?.status.branch ?? "";
+    const key = [repoRoot, branch, this.graphScope, this.graphLimit].join("|");
+    if (!force && key === this.graphCacheKey) return;
+    this.graphCacheKey = key;
+    const requestId = ++this.graphRequestId;
+    const scrollTop = list.scrollTop;
+    if (this.graphRaw === null) {
+      list.empty();
+      list.createDiv({ text: "Loading commits…", cls: "vlg-graph-empty" });
+    }
+
+    try {
+      const args = [
+        "log", "--graph", "--topo-order", "--decorate=short", "--no-color",
+        "-n", String(this.graphLimit),
+        "--format=%x1f%H%x1f%h%x1f%s%x1f%an%x1f%D"
+      ];
+      if (this.graphScope === "all") args.splice(1, 0, "--all");
+      const raw = await this.plugin.runGitPublic(args, repoRoot);
+      if (requestId !== this.graphRequestId || list !== this.graphEl) return;
+      if (raw === this.graphRaw && key === this.graphRenderedKey) return;
+      this.graphRaw = raw;
+      this.graphRenderedKey = key;
+      list.empty();
+
+      let count = 0;
+      for (const line of raw.split(/\r?\n/)) {
+        if (!line) continue;
+        const separator = line.indexOf("\x1f");
+        if (separator < 0) {
+          if (line.trim()) list.createDiv({ text: line, cls: "vlg-graph-connector" });
+          continue;
+        }
+        const [hash, shortHash, subject, author, decorations] = line.slice(separator + 1).split("\x1f");
+        if (!hash || !/^[0-9a-f]{40,64}$/.test(hash)) continue;
+
+        const row = list.createEl("button", { cls: "vlg-graph-row" });
+        row.setAttr("title", shortHash + " " + subject + " — " + author);
+        row.setAttr("aria-label", "Show commit " + shortHash + ": " + subject);
+        row.createSpan({ text: line.slice(0, separator), cls: "vlg-graph-path" });
+        row.createSpan({ text: subject || shortHash, cls: "vlg-graph-subject" });
+        const refs = (decorations ?? "").split(", ").filter(Boolean);
+        for (const ref of refs.slice(0, 2)) {
+          const badge = row.createSpan({
+            text: ref.replace(/^HEAD -> /, "").replace(/^tag: /, ""),
+            cls: "vlg-graph-ref"
+          });
+          if (ref.startsWith("HEAD -> ")) badge.addClass("is-head");
+          if (ref.startsWith("tag: ")) badge.addClass("is-tag");
+        }
+        if (refs.length > 2) row.createSpan({ text: "+" + (refs.length - 2), cls: "vlg-graph-ref" });
+        row.createSpan({ text: author ?? "", cls: "vlg-graph-author" });
+        row.onclick = () => {
+          void this.plugin.showCommitDiff(repoRoot, hash).catch((error: unknown) => {
+            this.plugin.reportSourceControlError("Show commit", error);
+          });
+        };
+        count += 1;
+      }
+      if (count === 0) list.createDiv({ text: "No commits yet.", cls: "vlg-graph-empty" });
+      if (count >= this.graphLimit) {
+        const more = list.createEl("button", { text: "Load more commits", cls: "vlg-graph-load-more" });
+        more.onclick = () => {
+          this.graphLimit += 80;
+          void this.loadGraph(repoRoot, true);
+        };
+      }
+      list.scrollTop = scrollTop;
+    } catch (error) {
+      if (requestId !== this.graphRequestId || list !== this.graphEl) return;
+      this.graphCacheKey = "";
+      this.graphRaw = null;
+      this.graphRenderedKey = "";
+      const message = error instanceof Error ? error.message : String(error);
+      list.empty();
+      list.createDiv({
+        text: /does not have any commits|unknown revision|bad revision|ambiguous argument/i.test(message)
+          ? "No commits yet."
+          : "Could not load commits: " + message,
+        cls: "vlg-graph-empty"
+      });
+    }
+  }
+
   private buildSnapshotKey(state: SourceControlState): string {
     const snapshot = state.snapshot;
     if (!snapshot) {
@@ -1065,7 +1326,7 @@ class SourceControlView extends ItemView {
       .map((c) => `${c.x}${c.y}${c.path}${c.staged}${c.unstaged}${c.untracked}${c.conflicted}`)
       .join("|");
     const limits = [...this.sectionRenderLimits.entries()].map(([k, v]) => `${k}:${v}`).join(",");
-    return `${snapshot.repoRoot}||${snapshot.status.branch}||${snapshot.status.ahead}:${snapshot.status.behind}||${changes}||${collapsed}||${limits}||${state.loading}:${state.operation ?? ""}:${state.error ?? ""}`;
+    return `${snapshot.repoRoot}||${snapshot.status.branch}||${snapshot.status.ahead}:${snapshot.status.behind}||${changes}||${collapsed}||${limits}||${this.plugin.getKnownRepos().join("|")}||${state.loading}:${state.operation ?? ""}:${state.error ?? ""}`;
   }
 
   private renderStateBanner(state: SourceControlState): void {
@@ -1296,6 +1557,9 @@ class SourceControlView extends ItemView {
       return;
     }
     const persisted = this.plugin.getCollapsedSections();
+    this.collapsedSections.set("Repositories", persisted["Repositories"] ?? false);
+    this.collapsedSections.set("Source Control Changes", persisted["Source Control Changes"] ?? false);
+    this.collapsedSections.set("Graph", persisted["Graph"] ?? false);
     this.collapsedSections.set("Merge Changes", persisted["Merge Changes"] ?? false);
     this.collapsedSections.set("Staged Changes", persisted["Staged Changes"] ?? false);
     this.collapsedSections.set("Changes", persisted["Changes"] ?? false);
@@ -1766,6 +2030,15 @@ class VsCodeLikeGitPlugin extends Plugin {
     const repoRoot = await this.resolveActiveRepoRoot();
     if (!repoRoot) { new Notice("No active Git repository found"); return; }
     new CommitHistoryModal(this.app, repoRoot, this).open();
+  }
+
+  async showCommitDiff(repoRoot: string, hash: string): Promise<void> {
+    if (!/^[0-9a-f]{40,64}$/.test(hash)) throw new Error("Invalid commit ID");
+    const diff = await this.runGit(
+      ["show", "--no-ext-diff", "--no-color", "--format=fuller", "--stat", "--patch", hash],
+      repoRoot
+    );
+    this.openDiffModal(hash.slice(0, 8), diff, "(commit)");
   }
 
   async openConflictResolverModal(repoRoot: string, filePath: string): Promise<void> {

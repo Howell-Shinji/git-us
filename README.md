@@ -14,6 +14,8 @@ GitUS is a desktop-only plugin. It requires Obsidian 1.7.2 or later and a workin
 
 Open with `GitUS: Open Source Control view` or the ribbon icon.
 
+The sidebar has three collapsible sections: **Repositories** for the selected repository, branch, pull/push and repository actions; **Changes** for the commit message and staged/working files; and **Graph** for an interactive commit history. In Graph, switch between all refs and the current branch, refresh the history, load more commits, or select a commit to inspect its diff. The graph refreshes after GitUS operations and every 30 seconds while the panel is open.
+
 | Area | What you can do |
 |---|---|
 | **Inline commit** | Type a message, press **Ctrl+Enter** or the commit button |

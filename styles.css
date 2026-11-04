@@ -83,18 +83,6 @@
   margin-bottom: 7px;
 }
 
-.vlg-panel-title {
-  min-height: 24px;
-  display: flex;
-  align-items: center;
-  margin: 0;
-  padding: 0 7px;
-  font-size: 10px;
-  font-weight: 650;
-  letter-spacing: 0.09em;
-  color: var(--text-faint);
-}
-
 .vlg-headline-row {
   display: flex;
   align-items: center;
@@ -324,6 +312,11 @@
 }
 
 .vlg-change-section-head:hover .vlg-change-section-actions {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.vlg-change-section-head:focus-within .vlg-change-section-actions {
   opacity: 1;
   pointer-events: auto;
 }
@@ -1035,4 +1028,401 @@
   .vlg-empty-icon.is-loading {
     animation-duration: 1800ms;
   }
+}
+
+/* Source Control workbench */
+.vlg-workbench-section {
+  border-top: 1px solid var(--background-modifier-border);
+}
+
+.vlg-workbench-section-head {
+  display: flex;
+  align-items: center;
+  min-height: 25px;
+  padding: 0 3px;
+  background: var(--background-primary);
+}
+
+.vlg-workbench-section-toggle {
+  display: inline-flex;
+  flex: 1;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  height: 25px;
+  padding: 0 3px;
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.05em;
+  text-align: left;
+  cursor: pointer;
+}
+
+.vlg-workbench-section-toggle:hover,
+.vlg-workbench-section-toggle:focus-visible {
+  color: var(--text-normal);
+}
+
+.vlg-workbench-chevron,
+.vlg-repo-icon,
+.vlg-repo-branch-icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+}
+
+.vlg-workbench-chevron svg,
+.vlg-repo-icon svg,
+.vlg-repo-branch-icon svg {
+  width: 13px;
+  height: 13px;
+}
+
+.vlg-workbench-section-actions {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 1px;
+}
+
+.vlg-workbench-section-body.is-hidden {
+  display: none;
+}
+
+.vlg-workbench-icon,
+.vlg-graph-scope {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 3px;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.vlg-workbench-icon:hover,
+.vlg-graph-scope:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
+.vlg-workbench-icon:focus-visible,
+.vlg-graph-scope:focus-visible,
+.vlg-repo-select:focus-visible,
+.vlg-graph-row:focus-visible {
+  outline: 1px solid var(--interactive-accent);
+  outline-offset: -1px;
+}
+
+.vlg-workbench-icon svg {
+  width: 14px;
+  height: 14px;
+}
+
+.vlg-workbench-count {
+  min-width: 16px;
+  padding: 0 3px;
+  color: var(--text-faint);
+  font-size: 10px;
+  text-align: center;
+}
+
+.vlg-workbench-repositories .vlg-sc-header {
+  margin: 0;
+  padding: 0 2px 4px;
+  border: 0;
+}
+
+.vlg-workbench-repositories .vlg-workbench-section-body {
+  max-height: 30vh;
+  overflow-y: auto;
+}
+
+.vlg-workbench-repositories .vlg-headline-row {
+  min-height: 29px;
+  padding: 0 2px 0 4px;
+  background: var(--background-modifier-hover);
+}
+
+.vlg-repo-select {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  height: 27px;
+  padding: 0 3px;
+  border: 0;
+  background: transparent;
+  color: var(--text-normal);
+  font-size: 11px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.vlg-repo-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vlg-repo-branch {
+  display: inline-flex;
+  flex: 0 1 auto;
+  align-items: center;
+  gap: 3px;
+  min-width: 0;
+  color: var(--text-muted);
+}
+
+.vlg-repo-branch-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vlg-repo-other {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  width: calc(100% - 4px);
+  min-height: 26px;
+  margin: 0 2px;
+  padding: 0 7px;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 11px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.vlg-repo-other:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
+.vlg-repo-other-name,
+.vlg-repo-other-path {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vlg-repo-other-name {
+  flex: 0 1 auto;
+}
+
+.vlg-repo-other-path {
+  flex: 1;
+  color: var(--text-faint);
+  font-size: 10px;
+}
+
+.vlg-headline-row .vlg-sc-actions {
+  flex: 0 0 auto;
+  min-height: 0;
+  padding: 0;
+}
+
+.vlg-headline-row .vlg-sc-actions .vlg-icon-btn {
+  width: 22px;
+  height: 22px;
+}
+
+.vlg-workbench-changes .vlg-workbench-section-body {
+  min-height: 155px;
+}
+
+.vlg-workbench-changes .vlg-commit-area {
+  margin: 5px 6px 7px;
+}
+
+.vlg-workbench-changes .vlg-sc-stats {
+  margin: 0 6px 4px;
+}
+
+.vlg-workbench-clean {
+  padding: 16px 10px 25px;
+  color: var(--text-faint);
+  font-size: 11px;
+  text-align: center;
+}
+
+.vlg-commit-controls {
+  display: flex;
+  width: 100%;
+}
+
+.vlg-commit-controls .vlg-commit-btn {
+  flex: 1;
+  width: auto;
+  min-width: 0;
+  border-radius: 4px 0 0 4px;
+}
+
+.vlg-commit-more {
+  display: inline-flex;
+  flex: 0 0 25px;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-left: 1px solid color-mix(in srgb, var(--text-on-accent) 25%, transparent);
+  border-radius: 0 4px 4px 0;
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  cursor: pointer;
+}
+
+.vlg-commit-more svg {
+  width: 13px;
+  height: 13px;
+}
+
+.vlg-commit-more:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.vlg-graph-scope {
+  min-width: 28px;
+  font-size: 10px;
+}
+
+.vlg-graph-list {
+  max-height: 55vh;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  padding: 1px 2px 6px;
+}
+
+.vlg-graph-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  min-height: 21px;
+  padding: 0 4px;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--text-normal);
+  font-size: 11px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.vlg-graph-row:hover {
+  background: var(--background-modifier-hover);
+}
+
+.vlg-graph-path,
+.vlg-graph-connector {
+  flex: 0 0 auto;
+  color: var(--interactive-accent);
+  font-family: var(--font-monospace);
+  font-size: 12px;
+  white-space: pre;
+}
+
+.vlg-graph-connector {
+  height: 13px;
+  padding-left: 4px;
+  line-height: 13px;
+}
+
+.vlg-graph-subject {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vlg-graph-ref {
+  flex: 0 0 auto;
+  max-width: 66px;
+  overflow: hidden;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: var(--background-modifier-hover);
+  color: var(--text-muted);
+  font-size: 10px;
+  line-height: 15px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vlg-graph-ref.is-head {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+}
+
+.vlg-graph-ref.is-tag {
+  color: var(--color-cyan);
+}
+
+.vlg-graph-author {
+  flex: 0 1 72px;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-faint);
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vlg-graph-empty {
+  padding: 12px 8px;
+  color: var(--text-faint);
+  font-size: 11px;
+}
+
+.vlg-graph-load-more {
+  width: 100%;
+  padding: 5px 8px;
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 11px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.vlg-graph-load-more:hover {
+  background: var(--background-modifier-hover);
+}
+
+.vlg-no-repo-item {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  text-align: left;
+}
+
+.vlg-no-repo-item:focus-visible,
+.vlg-repo-other:focus-visible {
+  outline: 1px solid var(--interactive-accent);
+  outline-offset: -1px;
+}
+
+.vlg-sc-view .vlg-workbench-section button {
+  box-shadow: none;
+}
+
+.vlg-sc-view .vlg-workbench-section button:hover {
+  box-shadow: none;
+  transform: none;
 }
