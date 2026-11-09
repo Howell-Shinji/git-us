@@ -277,10 +277,11 @@
   backdrop-filter: blur(8px);
 }
 
-.vlg-change-section-toggle {
+.vlg-sc-view .vlg-change-section-toggle {
   flex: 1;
   display: flex;
   align-items: center;
+  justify-content: flex-start;
   gap: 4px;
   min-width: 0;
   height: 100%;
@@ -1043,10 +1044,11 @@
   background: var(--background-primary);
 }
 
-.vlg-workbench-section-toggle {
+.vlg-sc-view .vlg-workbench-section-toggle {
   display: inline-flex;
   flex: 1;
   align-items: center;
+  justify-content: flex-start;
   gap: 4px;
   min-width: 0;
   height: 25px;
