@@ -2,6 +2,13 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Text rows and toolbar icons share the sidebar surface. */
+.vlg-sc-view :is(.vlg-workbench-icon, .vlg-graph-scope, .vlg-icon-btn, .vlg-repo-select, .vlg-repo-branch, .vlg-repo-other, .vlg-graph-row, .vlg-graph-load-more, .vlg-show-more, .vlg-state-dismiss) {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
 .vlg-input {
   width: 100%;
   margin-top: 8px;
@@ -16,7 +23,6 @@
 /* ── Flat button base — VS Code inspired ─────────────────────────────── */
 /* Exclude .vlg-change-section-toggle (ghost button) from these rules     */
 
-.vlg-sc-actions button,
 .vlg-change-section-actions button,
 .vlg-change-actions button,
 .vlg-actions button,
@@ -32,7 +38,6 @@
   box-shadow: none;
 }
 
-.vlg-sc-actions button:hover,
 .vlg-change-section-actions button:hover,
 .vlg-change-actions button:hover,
 .vlg-actions button:hover,
@@ -42,7 +47,6 @@
   transform: none;
 }
 
-.vlg-sc-actions button:active,
 .vlg-change-section-actions button:active,
 .vlg-change-actions button:active,
 .vlg-actions button:active,
@@ -52,7 +56,6 @@
   background: color-mix(in srgb, var(--background-modifier-hover) 160%, transparent);
 }
 
-.vlg-sc-actions button:focus-visible,
 .vlg-change-section-actions button:focus-visible,
 .vlg-change-actions button:focus-visible,
 .vlg-actions button:focus-visible,
@@ -105,37 +108,6 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   font-family: var(--font-interface);
-}
-
-.vlg-switch-repo-btn {
-  flex-shrink: 0;
-  font-size: 11px;
-  padding: 2px 7px;
-  color: var(--text-muted);
-}
-
-.vlg-switch-repo-btn:hover {
-  color: var(--text-normal);
-}
-
-.vlg-sc-actions {
-  display: flex;
-  gap: 1px;
-  flex-wrap: nowrap;
-  min-height: 26px;
-  align-items: center;
-  justify-content: flex-end;
-  padding: 1px 2px 0;
-}
-
-.vlg-sc-actions button {
-  padding: 3px 8px;
-  font-size: 11px;
-  color: var(--text-muted);
-}
-
-.vlg-sc-actions button:hover {
-  color: var(--text-normal);
 }
 
 .vlg-sc-stats {
@@ -263,18 +235,15 @@
   display: flex;
   align-items: center;
   position: sticky;
-  top: -7px;
+  top: -8px;
   z-index: 2;
-  height: 25px;
-  padding: 0 3px;
+  height: 28px;
+  padding: 0 4px;
   justify-content: space-between;
   gap: 4px;
   margin: 0;
   border-radius: 0;
-  border-top: 1px solid var(--background-modifier-border);
-  border-bottom: 1px solid color-mix(in srgb, var(--background-modifier-border) 65%, transparent);
-  background: color-mix(in srgb, var(--background-secondary) 94%, transparent);
-  backdrop-filter: blur(8px);
+  background: var(--background-secondary);
 }
 
 .vlg-sc-view .vlg-change-section-toggle {
@@ -288,9 +257,9 @@
   background: none;
   border: none;
   color: var(--text-muted);
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.07em;
+  font-size: var(--font-ui-smaller);
+  font-weight: 500;
+  letter-spacing: 0;
   padding: 0;
   text-align: left;
   cursor: pointer;
@@ -356,7 +325,7 @@
   position: relative;
   min-height: 27px;
   height: 27px;
-  padding: 0 3px 0 7px;
+  padding: 0 4px 0 21px;
   border: none;
   border-radius: 3px;
   background: transparent;
@@ -431,7 +400,7 @@
   color: color-mix(in srgb, var(--color-red) 70%, var(--text-muted));
 }
 
-.vlg-icon-btn.vlg-btn-danger:hover {
+.vlg-sc-view .vlg-icon-btn.vlg-btn-danger:hover {
   color: var(--color-red);
 }
 
@@ -445,7 +414,6 @@
   pointer-events: none;
   transition: opacity 80ms;
   padding-left: 2px;
-  background: linear-gradient(90deg, transparent, var(--background-modifier-hover) 10px);
 }
 
 .vlg-change-row:hover .vlg-change-actions {
@@ -480,58 +448,56 @@
   margin: 0 2px 9px;
 }
 
-.vlg-commit-input {
+.vlg-sc-view .vlg-commit-input {
   width: 100%;
-  min-height: 52px;
+  min-height: 48px;
   max-height: 120px;
   resize: none;
   overflow-y: auto;
   padding: 7px 8px;
   font-size: 12px;
-  font-family: var(--font-text);
+  font-family: var(--font-interface);
   line-height: 1.45;
   border-radius: 4px;
-  border: 1px solid var(--background-modifier-border);
-  background: var(--background-primary);
+  border: 1px solid color-mix(in srgb, var(--text-muted) 22%, transparent);
+  background: var(--background-modifier-form-field, var(--background-secondary));
   color: var(--text-normal);
   box-sizing: border-box;
+  box-shadow: none;
 }
 
-.vlg-commit-input:focus {
+.vlg-sc-view .vlg-commit-input:focus {
   border-color: var(--interactive-accent);
   outline: none;
-  box-shadow: 0 0 0 1px var(--interactive-accent);
 }
 
 .vlg-commit-input::placeholder {
   color: var(--text-faint);
 }
 
-.vlg-commit-btn {
+.vlg-sc-view .vlg-commit-btn {
   width: 100%;
-  min-height: 28px;
-  padding: 5px 10px;
+  min-height: 30px;
+  height: 30px;
+  padding: 4px 10px;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 500;
   text-align: center;
   border-radius: 4px;
   border: 1px solid transparent;
   background: var(--interactive-accent);
   color: var(--text-on-accent);
   cursor: pointer;
-  transition: filter 80ms;
 }
 
-.vlg-commit-btn:hover:not(:disabled) {
-  filter: brightness(1.08);
+.vlg-sc-view :is(.vlg-commit-btn, .vlg-commit-more):hover:not(:disabled) {
+  background: var(--interactive-accent-hover);
 }
 
-.vlg-commit-btn:active:not(:disabled) {
-  filter: brightness(0.94);
-}
-
-.vlg-commit-btn:disabled {
-  opacity: 0.45;
+.vlg-sc-view :is(.vlg-commit-btn, .vlg-commit-more):disabled {
+  background: color-mix(in srgb, var(--text-muted) 6%, transparent);
+  color: var(--text-faint);
+  opacity: 1;
   cursor: default;
 }
 
@@ -713,32 +679,16 @@
 /* ── Source Control workbench ────────────────────────────────────────── */
 
 .vlg-sc-view .view-content {
-  padding: 7px 6px 14px;
+  padding: 8px 8px 12px;
   overflow-y: auto;
-  scrollbar-gutter: stable;
+  background: var(--background-secondary);
+  font-family: var(--font-interface);
 }
 
 .vlg-sc-view button:disabled {
   opacity: 0.42;
   cursor: default;
   pointer-events: none;
-}
-
-.vlg-switch-repo-btn,
-.vlg-sc-actions .vlg-icon-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  padding: 0;
-  border-radius: 3px;
-}
-
-.vlg-switch-repo-btn svg,
-.vlg-sc-actions .vlg-icon-btn svg {
-  width: 14px;
-  height: 14px;
 }
 
 .vlg-state-banner {
@@ -811,6 +761,11 @@
   line-height: 1.4;
 }
 
+.vlg-commit-hint:empty,
+.vlg-sc-stats:empty {
+  display: none;
+}
+
 .vlg-section-chevron {
   display: inline-flex;
   flex: 0 0 auto;
@@ -830,12 +785,10 @@
 .vlg-section-count {
   min-width: 17px;
   height: 16px;
-  padding: 0 5px;
-  border-radius: 8px;
-  background: var(--background-modifier-hover);
-  color: var(--text-muted);
-  font-size: 10px;
-  font-weight: 500;
+  padding: 0 3px;
+  color: var(--text-faint);
+  font-size: 11px;
+  font-weight: 400;
   line-height: 16px;
   text-align: center;
   letter-spacing: 0;
@@ -854,8 +807,8 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--text-normal);
-  font-size: 12px;
-  font-weight: 500;
+  font-size: var(--font-ui-small);
+  font-weight: 400;
 }
 
 .vlg-change-directory {
@@ -865,7 +818,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--text-faint);
-  font-size: 10px;
+  font-size: 11px;
 }
 
 .vlg-change-row:hover .vlg-change-actions,
@@ -890,11 +843,6 @@
   font-size: 11px;
   text-align: left;
   cursor: pointer;
-}
-
-.vlg-show-more:hover {
-  background: var(--background-modifier-hover);
-  color: var(--text-normal);
 }
 
 .vlg-clean-state {
@@ -991,15 +939,12 @@
   font-size: 12px;
 }
 
-.is-busy .vlg-sc-actions button,
 .is-busy .vlg-change-section-actions button,
 .is-busy .vlg-change-actions button,
-.is-busy .vlg-switch-repo-btn,
 .is-busy .vlg-change-row {
   pointer-events: none;
 }
 
-.is-busy .vlg-sc-actions,
 .is-busy .vlg-change-section-actions,
 .is-busy .vlg-change-actions {
   opacity: 0.45;
@@ -1012,10 +957,6 @@
 @media (max-width: 310px) {
   .vlg-change-directory {
     display: none;
-  }
-
-  .vlg-sc-actions {
-    justify-content: space-between;
   }
 
   .vlg-conflict-sections,
@@ -1033,15 +974,19 @@
 
 /* Source Control workbench */
 .vlg-workbench-section {
-  border-top: 1px solid var(--background-modifier-border);
+  margin-bottom: 8px;
+}
+
+.vlg-workbench-section ~ .vlg-workbench-section {
+  border-top: 1px solid color-mix(in srgb, var(--text-muted) 14%, transparent);
+  padding-top: 6px;
 }
 
 .vlg-workbench-section-head {
   display: flex;
   align-items: center;
-  min-height: 25px;
-  padding: 0 3px;
-  background: var(--background-primary);
+  min-height: 28px;
+  padding: 0 4px;
 }
 
 .vlg-sc-view .vlg-workbench-section-toggle {
@@ -1051,14 +996,14 @@
   justify-content: flex-start;
   gap: 4px;
   min-width: 0;
-  height: 25px;
-  padding: 0 3px;
+  height: 28px;
+  padding: 0;
   border: 0;
   background: transparent;
   color: var(--text-muted);
-  font-size: 10px;
-  font-weight: 650;
-  letter-spacing: 0.05em;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
   text-align: left;
   cursor: pointer;
 }
@@ -1109,15 +1054,19 @@
   cursor: pointer;
 }
 
-.vlg-workbench-icon:hover,
-.vlg-graph-scope:hover {
+.vlg-sc-view :is(.vlg-workbench-icon, .vlg-graph-scope, .vlg-icon-btn, .vlg-repo-branch, .vlg-repo-other, .vlg-graph-row, .vlg-graph-load-more, .vlg-show-more):hover {
   background: var(--background-modifier-hover);
   color: var(--text-normal);
 }
 
 .vlg-workbench-icon:focus-visible,
 .vlg-graph-scope:focus-visible,
+.vlg-workbench-section-toggle:focus-visible,
+.vlg-change-section-toggle:focus-visible,
+.vlg-commit-btn:focus-visible,
+.vlg-commit-more:focus-visible,
 .vlg-repo-select:focus-visible,
+.vlg-repo-branch:focus-visible,
 .vlg-graph-row:focus-visible {
   outline: 1px solid var(--interactive-accent);
   outline-offset: -1px;
@@ -1138,7 +1087,7 @@
 
 .vlg-workbench-repositories .vlg-sc-header {
   margin: 0;
-  padding: 0 2px 4px;
+  padding: 0;
   border: 0;
 }
 
@@ -1150,6 +1099,10 @@
 .vlg-workbench-repositories .vlg-headline-row {
   min-height: 29px;
   padding: 0 2px 0 4px;
+  background: transparent;
+}
+
+.vlg-workbench-repositories .vlg-headline-row:hover {
   background: var(--background-modifier-hover);
 }
 
@@ -1164,7 +1117,7 @@
   border: 0;
   background: transparent;
   color: var(--text-normal);
-  font-size: 11px;
+  font-size: var(--font-ui-small);
   text-align: left;
   cursor: pointer;
 }
@@ -1177,13 +1130,18 @@
   white-space: nowrap;
 }
 
-.vlg-repo-branch {
+.vlg-sc-view .vlg-repo-branch {
   display: inline-flex;
   flex: 0 1 auto;
   align-items: center;
   gap: 3px;
   min-width: 0;
+  max-width: 45%;
+  height: 24px;
+  padding: 0 3px;
+  border-radius: 3px;
   color: var(--text-muted);
+  font-size: 11px;
 }
 
 .vlg-repo-branch-name {
@@ -1204,14 +1162,9 @@
   border-radius: 3px;
   background: transparent;
   color: var(--text-muted);
-  font-size: 11px;
+  font-size: var(--font-ui-small);
   text-align: left;
   cursor: pointer;
-}
-
-.vlg-repo-other:hover {
-  background: var(--background-modifier-hover);
-  color: var(--text-normal);
 }
 
 .vlg-repo-other-name,
@@ -1232,34 +1185,20 @@
   font-size: 10px;
 }
 
-.vlg-headline-row .vlg-sc-actions {
-  flex: 0 0 auto;
-  min-height: 0;
-  padding: 0;
-}
-
-.vlg-headline-row .vlg-sc-actions .vlg-icon-btn {
-  width: 22px;
-  height: 22px;
-}
-
-.vlg-workbench-changes .vlg-workbench-section-body {
-  min-height: 155px;
-}
-
 .vlg-workbench-changes .vlg-commit-area {
-  margin: 5px 6px 7px;
+  margin: 4px 4px 8px;
 }
 
 .vlg-workbench-changes .vlg-sc-stats {
-  margin: 0 6px 4px;
+  margin: 0 4px 6px;
+  padding: 0;
 }
 
 .vlg-workbench-clean {
-  padding: 16px 10px 25px;
+  padding: 12px 21px 16px;
   color: var(--text-faint);
   font-size: 11px;
-  text-align: center;
+  text-align: left;
 }
 
 .vlg-commit-controls {
@@ -1267,18 +1206,19 @@
   width: 100%;
 }
 
-.vlg-commit-controls .vlg-commit-btn {
+.vlg-sc-view .vlg-commit-controls .vlg-commit-btn {
   flex: 1;
   width: auto;
   min-width: 0;
   border-radius: 4px 0 0 4px;
 }
 
-.vlg-commit-more {
+.vlg-sc-view .vlg-commit-more {
   display: inline-flex;
   flex: 0 0 25px;
   align-items: center;
   justify-content: center;
+  height: 30px;
   padding: 0;
   border: 0;
   border-left: 1px solid color-mix(in srgb, var(--text-on-accent) 25%, transparent);
@@ -1293,21 +1233,23 @@
   height: 13px;
 }
 
-.vlg-commit-more:disabled {
-  opacity: 0.45;
-  cursor: default;
-}
-
 .vlg-graph-scope {
   min-width: 28px;
+  max-width: 48px;
+  gap: 3px;
   font-size: 10px;
+}
+
+.vlg-graph-scope > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .vlg-graph-list {
   max-height: 55vh;
   overflow-y: auto;
-  scrollbar-gutter: stable;
-  padding: 1px 2px 6px;
+  padding: 2px 0 6px;
 }
 
 .vlg-graph-row {
@@ -1315,19 +1257,16 @@
   align-items: center;
   gap: 4px;
   width: 100%;
-  min-height: 21px;
+  min-height: 26px;
+  height: 26px;
   padding: 0 4px;
   border: 0;
   border-radius: 3px;
   background: transparent;
   color: var(--text-normal);
-  font-size: 11px;
+  font-size: 12px;
   text-align: left;
   cursor: pointer;
-}
-
-.vlg-graph-row:hover {
-  background: var(--background-modifier-hover);
 }
 
 .vlg-graph-path,
@@ -1358,7 +1297,7 @@
   max-width: 66px;
   overflow: hidden;
   padding: 0 4px;
-  border-radius: 8px;
+  border-radius: 3px;
   background: var(--background-modifier-hover);
   color: var(--text-muted);
   font-size: 10px;
@@ -1368,8 +1307,8 @@
 }
 
 .vlg-graph-ref.is-head {
-  background: var(--interactive-accent);
-  color: var(--text-on-accent);
+  background: color-mix(in srgb, var(--interactive-accent) 12%, transparent);
+  color: var(--interactive-accent);
 }
 
 .vlg-graph-ref.is-tag {
@@ -1377,7 +1316,7 @@
 }
 
 .vlg-graph-author {
-  flex: 0 1 72px;
+  flex: 0 1 56px;
   min-width: 0;
   overflow: hidden;
   color: var(--text-faint);
@@ -1401,10 +1340,6 @@
   font-size: 11px;
   text-align: left;
   cursor: pointer;
-}
-
-.vlg-graph-load-more:hover {
-  background: var(--background-modifier-hover);
 }
 
 .vlg-no-repo-item {

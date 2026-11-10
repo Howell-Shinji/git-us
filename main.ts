@@ -812,6 +812,7 @@ class SourceControlView extends ItemView {
   private commitHintEl: HTMLElement | null = null;
   private commitInputEl: HTMLTextAreaElement | null = null;
   private commitBtnEl: HTMLButtonElement | null = null;
+  private commitActionEl: HTMLButtonElement | null = null;
   private commitMoreEl: HTMLButtonElement | null = null;
   private changesCountEl: HTMLElement | null = null;
   private graphEl: HTMLElement | null = null;
@@ -891,6 +892,7 @@ class SourceControlView extends ItemView {
       this.commitHintEl = null;
       this.commitInputEl = null;
       this.commitBtnEl = null;
+      this.commitActionEl = null;
       this.commitMoreEl = null;
       this.changesCountEl = null;
       this.graphEl = null;
@@ -958,44 +960,36 @@ class SourceControlView extends ItemView {
       repoSelect.setAttr("aria-label", "Switch repository: " + snapshot.repoName);
       setIcon(repoSelect.createSpan({ cls: "vlg-repo-icon" }), "hard-drive");
       repoSelect.createSpan({ text: snapshot.repoName, cls: "vlg-repo-name" });
-      const branch = repoSelect.createSpan({ cls: "vlg-repo-branch" });
+      const branch = headlineRow.createEl("button", { cls: "vlg-repo-branch vlg-operation-action" });
+      branch.setAttr("title", "Checkout or create branch");
+      branch.setAttr("aria-label", "Checkout or create branch");
+      branch.onclick = () => guard("Open branches", () => this.plugin.checkoutOrCreateBranch());
       setIcon(branch.createSpan({ cls: "vlg-repo-branch-icon" }), "git-branch");
       this.headlineEl = branch.createSpan({ text: snapshot.status.branch, cls: "vlg-repo-branch-name" });
       repoSelect.onclick = async () => { await guard("Switch repository", () => this.plugin.switchRepositoryContext()); };
 
-      const actions = headlineRow.createDiv({ cls: "vlg-sc-actions" });
-      const makeAction = (icon: string, title: string): HTMLButtonElement => {
-        const button = actions.createEl("button");
-        button.addClass("vlg-icon-btn");
+      const makeAction = (parent: HTMLElement, icon: string, title: string, action: () => Promise<void>): void => {
+        const button = parent.createEl("button", { cls: "vlg-workbench-icon vlg-operation-action" });
         button.setAttr("title", title);
         button.setAttr("aria-label", title);
         setIcon(button, icon);
-        return button;
+        button.onclick = () => guard(title, action);
       };
-      const remoteBtn = makeAction("refresh-cw", "Pull or push");
-      remoteBtn.onclick = (event) => {
-        const menu = new Menu();
-        menu.addItem((item) => item.setTitle("Pull").setIcon("arrow-down-to-line")
-          .onClick(() => { void guard("Pull", () => this.plugin.pullCurrentRepo()); }));
-        menu.addItem((item) => item.setTitle("Push").setIcon("arrow-up-from-line")
-          .onClick(() => { void guard("Push", () => this.plugin.pushCurrentRepo()); }));
-        menu.showAtMouseEvent(event);
-      };
-      const repoMore = makeAction("ellipsis", "Repository actions");
+      makeAction(headlineRow, "refresh-cw", "Refresh source control", () => this.plugin.refreshContext(true));
+      const repoMore = headlineRow.createEl("button", { cls: "vlg-workbench-icon" });
+      repoMore.setAttr("title", "Repository actions");
+      repoMore.setAttr("aria-label", "Repository actions");
+      setIcon(repoMore, "ellipsis");
       repoMore.onclick = (event) => {
         const menu = new Menu();
-        menu.addItem((item) => item.setTitle("Refresh").setIcon("refresh-cw")
-          .onClick(() => { void guard("Refresh", () => this.plugin.refreshContext(true)); }));
         menu.addItem((item) => item.setTitle("Switch repository").setIcon("git-branch")
           .onClick(() => { void guard("Switch repository", () => this.plugin.switchRepositoryContext()); }));
         menu.addSeparator();
-        menu.addItem((item) => item.setTitle("Checkout or create branch").setIcon("git-branch")
-          .onClick(() => { void guard("Open branches", () => this.plugin.checkoutOrCreateBranch()); }));
         menu.addItem((item) => item.setTitle("Stash changes").setIcon("archive")
           .onClick(() => { void guard("Open stash", () => this.plugin.openStashModal()); }));
         menu.addItem((item) => item.setTitle("Commit history").setIcon("history")
           .onClick(() => { void guard("Open history", () => this.plugin.openHistoryModal()); }));
-        menu.addItem((item) => item.setTitle("Undo last commit").setIcon("undo-2")
+        menu.addItem((item) => item.setTitle("Undo last commit (keep changes staged)").setIcon("undo-2")
           .onClick(() => { void guard("Undo commit", () => this.plugin.undoLastCommit()); }));
         menu.showAtMouseEvent(event);
       };
@@ -1014,11 +1008,14 @@ class SourceControlView extends ItemView {
 
       const changes = this.createWorkbenchSection(wrap, "CHANGES", "Source Control Changes");
       this.changesCountEl = changes.actions.createSpan({ cls: "vlg-workbench-count" });
-      const changesRefresh = changes.actions.createEl("button", { cls: "vlg-workbench-icon" });
-      changesRefresh.setAttr("aria-label", "Refresh changes");
-      changesRefresh.setAttr("title", "Refresh changes");
-      setIcon(changesRefresh, "refresh-cw");
-      changesRefresh.onclick = async () => { await guard("Refresh", () => this.plugin.refreshContext(true)); };
+      const commitAction = changes.actions.createEl("button", { cls: "vlg-workbench-icon" });
+      commitAction.setAttr("title", "Commit staged changes");
+      commitAction.setAttr("aria-label", "Commit staged changes");
+      commitAction.disabled = true;
+      setIcon(commitAction, "check");
+      commitAction.onclick = () => this.commitBtnEl?.click();
+      this.commitActionEl = commitAction;
+      makeAction(changes.actions, "refresh-cw", "Refresh changes", () => this.plugin.refreshContext(true));
       const changesMore = changes.actions.createEl("button", { cls: "vlg-workbench-icon" });
       changesMore.setAttr("aria-label", "Changes actions");
       changesMore.setAttr("title", "Changes actions");
@@ -1034,7 +1031,7 @@ class SourceControlView extends ItemView {
 
       const commitArea = changes.body.createDiv({ cls: "vlg-commit-area" });
       const ta = commitArea.createEl("textarea");
-      ta.placeholder = Platform.isMacOS ? "Message (Cmd+Enter to commit)" : "Message (Ctrl+Enter to commit)";
+      ta.placeholder = Platform.isMacOS ? "Message (Cmd+Enter)" : "Message (Ctrl+Enter)";
       ta.addClass("vlg-commit-input");
       ta.value = this.commitDrafts.get(snapshot.repoRoot) ?? "";
       this.commitInputEl = ta;
@@ -1056,6 +1053,7 @@ class SourceControlView extends ItemView {
       ta.addEventListener("input", () => {
         this.commitDrafts.set(snapshot.repoRoot, ta.value);
         updateCommitButtonState(this.commitBtnEl, ta, this.plugin.getSourceControlState());
+        commitAction.disabled = commitBtn.disabled;
         commitMore.disabled = commitBtn.disabled;
       });
 
@@ -1076,6 +1074,7 @@ class SourceControlView extends ItemView {
           ta.value = "";
           this.commitDrafts.delete(snap.repoRoot);
           commitBtn.disabled = true;
+          commitAction.disabled = true;
           commitMore.disabled = true;
           if (pushAfter) await this.plugin.pushCurrentRepo();
         }
@@ -1095,29 +1094,31 @@ class SourceControlView extends ItemView {
 
       const graph = this.createWorkbenchSection(wrap, "GRAPH", "Graph");
       const scopeBtn = graph.actions.createEl("button", { cls: "vlg-graph-scope" });
-      scopeBtn.setText(this.graphScope === "all" ? "All" : "Current");
+      setIcon(scopeBtn.createSpan({ cls: "vlg-repo-branch-icon" }), "git-branch");
+      const scopeLabel = scopeBtn.createSpan({ text: this.graphScope === "all" ? "All" : "Current" });
       scopeBtn.setAttr("aria-label", "Graph branch scope");
+      scopeBtn.setAttr("title", this.graphScope === "all" ? "All branches" : "Current branch");
       scopeBtn.onclick = (event) => {
         const menu = new Menu();
         menu.addItem((item) => item.setTitle("All branches").setChecked(this.graphScope === "all")
           .onClick(() => {
             this.graphScope = "all";
-            scopeBtn.setText("All");
+            scopeLabel.setText("All");
+            scopeBtn.setAttr("title", "All branches");
             void this.loadGraph(snapshot.repoRoot, true);
           }));
         menu.addItem((item) => item.setTitle("Current branch").setChecked(this.graphScope === "current")
           .onClick(() => {
             this.graphScope = "current";
-            scopeBtn.setText("Current");
+            scopeLabel.setText("Current");
+            scopeBtn.setAttr("title", "Current branch");
             void this.loadGraph(snapshot.repoRoot, true);
           }));
         menu.showAtMouseEvent(event);
       };
-      const graphRefresh = graph.actions.createEl("button", { cls: "vlg-workbench-icon" });
-      graphRefresh.setAttr("aria-label", "Refresh graph");
-      graphRefresh.setAttr("title", "Refresh graph");
-      setIcon(graphRefresh, "refresh-cw");
-      graphRefresh.onclick = () => { void this.loadGraph(snapshot.repoRoot, true); };
+      makeAction(graph.actions, "arrow-down-to-line", "Pull", () => this.plugin.pullCurrentRepo());
+      makeAction(graph.actions, "arrow-up-from-line", "Push", () => this.plugin.pushCurrentRepo());
+      makeAction(graph.actions, "refresh-cw", "Refresh graph", () => this.loadGraph(snapshot.repoRoot, true));
       const graphMore = graph.actions.createEl("button", { cls: "vlg-workbench-icon" });
       graphMore.setAttr("aria-label", "Graph actions");
       graphMore.setAttr("title", "Graph actions");
@@ -1140,6 +1141,9 @@ class SourceControlView extends ItemView {
 
     wrap.classList.toggle("is-busy", Boolean(state.operation));
     wrap.setAttr("aria-busy", state.operation || state.loading ? "true" : "false");
+    wrap.querySelectorAll<HTMLButtonElement>(".vlg-operation-action").forEach((button) => {
+      button.disabled = Boolean(state.operation);
+    });
 
     this.renderStateBanner(state);
 
@@ -1148,6 +1152,7 @@ class SourceControlView extends ItemView {
       this.headlineEl.setText(snapshot.status.branch);
     }
     updateCommitButtonState(this.commitBtnEl, this.commitInputEl, state);
+    if (this.commitActionEl && this.commitBtnEl) this.commitActionEl.disabled = this.commitBtnEl.disabled;
     if (this.commitMoreEl && this.commitBtnEl) this.commitMoreEl.disabled = this.commitBtnEl.disabled;
     if (this.changesCountEl) this.changesCountEl.setText(String(snapshot.changes.length));
     if (this.commitHintEl) {
@@ -1156,15 +1161,14 @@ class SourceControlView extends ItemView {
           ? "Resolve merge conflicts before committing"
           : snapshot.status.staged === 0
             ? "Stage changes to enable commit"
-            : `Committing to ${snapshot.status.branch}`
+            : ""
       );
     }
     if (this.statsEl) {
       this.statsEl.setText(
-        String(snapshot.changes.length) + " changed " + (snapshot.changes.length === 1 ? "file" : "files") +
-        (snapshot.status.ahead || snapshot.status.behind
-          ? "  ·  ↑ " + snapshot.status.ahead + "  ↓ " + snapshot.status.behind
-          : "")
+        snapshot.status.ahead || snapshot.status.behind
+          ? `↑ ${snapshot.status.ahead} outgoing · ↓ ${snapshot.status.behind} incoming`
+          : ""
       );
     }
     if (state.operation) this.graphCacheKey = "";
@@ -1366,7 +1370,7 @@ class SourceControlView extends ItemView {
     const toggle = titleRow.createDiv({ cls: "vlg-change-section-toggle" });
     const chevron = toggle.createSpan({ cls: "vlg-section-chevron" });
     setIcon(chevron, isCollapsed ? "chevron-right" : "chevron-down");
-    toggle.createSpan({ text: title.toUpperCase(), cls: "vlg-section-label" });
+    toggle.createSpan({ text: title, cls: "vlg-section-label" });
     toggle.createSpan({ text: String(changes.length), cls: "vlg-section-count" });
     toggle.setAttr("role", "button");
     toggle.setAttr("tabindex", "0");
